@@ -34,15 +34,12 @@ const Navbar = () => {
     >
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center">
             <img 
               src="/lovable-uploads/45a81f67-90b3-43d3-9499-2a874a4d48be.png" 
               alt="MediShare Logo" 
               className="h-12 w-auto"
             />
-            <span className={`text-xl font-display font-bold ${isScrolled ? "text-medishare-dark" : "text-white"}`}>
-              MediShare
-            </span>
           </Link>
 
           {/* Desktop Navigation */}

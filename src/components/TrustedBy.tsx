@@ -15,7 +15,6 @@ const TrustedBy = () => {
                 className="h-20 w-auto"
               />
             </div>
-            <h3 className="text-xl font-display font-bold text-medishare-dark mb-2">MediShare</h3>
             <p className="text-sm text-gray-600 max-w-xs">
               Recycle. Reuse. Relieve – Giving Medicines a Second Life
             </p>
