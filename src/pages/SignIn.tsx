@@ -49,7 +49,22 @@ const SignIn = () => {
     });
     
     // Navigate to appropriate dashboard based on user type
-    navigate("/");
+    switch(userType) {
+      case "donor":
+        navigate("/donor-dashboard");
+        break;
+      case "ngo":
+        navigate("/ngo-dashboard");
+        break;
+      case "recipient":
+        navigate("/recipient-dashboard");
+        break;
+      case "admin":
+        navigate("/admin-dashboard");
+        break;
+      default:
+        navigate("/");
+    }
   };
 
   return (
@@ -73,7 +88,7 @@ const SignIn = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={userType} onValueChange={setUserType} className="w-full">
-                <TabsList className="grid grid-cols-3 mb-8">
+                <TabsList className="grid grid-cols-4 mb-8">
                   <TabsTrigger value="donor" className="flex flex-col items-center gap-2 py-3">
                     <UserPlus className="h-5 w-5" />
                     <span>Donor</span>
@@ -85,6 +100,10 @@ const SignIn = () => {
                   <TabsTrigger value="recipient" className="flex flex-col items-center gap-2 py-3">
                     <Building className="h-5 w-5" />
                     <span>Recipient</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="admin" className="flex flex-col items-center gap-2 py-3">
+                    <Shield className="h-5 w-5" />
+                    <span>Admin</span>
                   </TabsTrigger>
                 </TabsList>
 

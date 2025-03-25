@@ -12,6 +12,10 @@ import Contact from "./pages/Contact";
 import Register from "./pages/Register";
 import SignIn from "./pages/SignIn";
 import NotFound from "./pages/NotFound";
+import DonorDashboard from "./pages/DonorDashboard";
+import NGODashboard from "./pages/NGODashboard";
+import RecipientDashboard from "./pages/RecipientDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +33,10 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/register" element={<Register />} />
           <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/donor-dashboard" element={<DonorDashboard />} />
+          <Route path="/ngo-dashboard" element={<NGODashboard />} />
+          <Route path="/recipient-dashboard" element={<RecipientDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
