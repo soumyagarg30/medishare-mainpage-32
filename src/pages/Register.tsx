@@ -1,5 +1,5 @@
-
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -331,7 +331,7 @@ const Register = () => {
   );
 };
 
-// Success message component
+// Success message component - this is where the error was
 const RegistrationSuccess = ({ userType }) => {
   const messages = {
     donor: "We're verifying your GST ID. You'll receive an email when your account is verified.",
@@ -348,9 +348,11 @@ const RegistrationSuccess = ({ userType }) => {
       <p className="text-gray-600 mb-6">
         Thank you for registering with MediShare. {messages[userType]}
       </p>
-      <Button href="/" className="bg-medishare-orange hover:bg-medishare-gold">
-        Return to Home
-      </Button>
+      <Link to="/">
+        <Button className="bg-medishare-orange hover:bg-medishare-gold">
+          Return to Home
+        </Button>
+      </Link>
     </div>
   );
 };
