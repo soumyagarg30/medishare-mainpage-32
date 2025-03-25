@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -319,9 +320,9 @@ const Register = () => {
           <div className="mt-8 text-center text-gray-600">
             <p>
               Already have an account?{" "}
-              <a href="#" className="text-medishare-orange font-medium hover:underline">
+              <Link to="/sign-in" className="text-medishare-orange font-medium hover:underline">
                 Sign in
-              </a>
+              </Link>
             </p>
           </div>
         </div>

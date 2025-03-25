@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, UserCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -43,12 +44,27 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-8">
+          <div className="hidden md:flex items-center space-x-8">
             <NavLink href="/" label="Home" isScrolled={isScrolled} />
             <NavLink href="/about" label="About us" isScrolled={isScrolled} />
             <NavLink href="/ngos" label="NGOs" isScrolled={isScrolled} />
             <NavLink href="/providers" label="Providers" isScrolled={isScrolled} />
             <NavLink href="/contact" label="Contact Us" isScrolled={isScrolled} />
+            
+            <Link to="/sign-in">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={`ml-2 ${
+                  isScrolled 
+                    ? "border-medishare-blue text-medishare-blue hover:bg-medishare-blue/10" 
+                    : "border-white text-white hover:bg-white/10"
+                }`}
+              >
+                <UserCircle className="mr-1 h-4 w-4" />
+                Sign In
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -74,6 +90,7 @@ const Navbar = () => {
               <MobileNavLink href="/ngos" label="NGOs" onClick={toggleMenu} />
               <MobileNavLink href="/providers" label="Providers" onClick={toggleMenu} />
               <MobileNavLink href="/contact" label="Contact Us" onClick={toggleMenu} />
+              <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />
             </div>
           </div>
         )}
