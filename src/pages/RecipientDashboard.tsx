@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -131,57 +130,50 @@ const RecipientDashboard = () => {
             <div className="md:col-span-3">
               <Card>
                 <CardContent className="p-0">
-                  <Tabs 
-                    value={activeTab} 
-                    onValueChange={setActiveTab}
-                    orientation="vertical" 
-                    className="w-full"
-                  >
-                    <TabsList className="flex flex-col h-auto items-stretch gap-2 bg-transparent">
-                      <TabsTrigger 
-                        value="profile" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <UserCircle size={18} />
-                        <span>Profile</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="browse" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Search size={18} />
-                        <span>Browse Medicines</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="requests" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Clock size={18} />
-                        <span>Request Status</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="notifications" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Bell size={18} />
-                        <span>Notifications</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="history" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <FileText size={18} />
-                        <span>Transaction History</span>
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <div className="flex flex-col h-auto items-stretch gap-2 bg-transparent p-1">
+                    <button 
+                      onClick={() => setActiveTab("profile")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "profile" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <UserCircle size={18} />
+                      <span>Profile</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("browse")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "browse" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Search size={18} />
+                      <span>Browse Medicines</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("requests")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "requests" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Clock size={18} />
+                      <span>Request Status</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("notifications")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "notifications" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Bell size={18} />
+                      <span>Notifications</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("history")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "history" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <FileText size={18} />
+                      <span>Transaction History</span>
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
             
             {/* Main Content */}
             <div className="md:col-span-9">
-              <TabsContent value="profile" className="mt-0">
+              {activeTab === "profile" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Recipient Profile</CardTitle>
@@ -229,9 +221,9 @@ const RecipientDashboard = () => {
                     </form>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="browse" className="mt-0">
+              {activeTab === "browse" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Browse Available Medicines</CardTitle>
@@ -341,9 +333,9 @@ const RecipientDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="requests" className="mt-0">
+              {activeTab === "requests" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Request Status</CardTitle>
@@ -407,9 +399,9 @@ const RecipientDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="notifications" className="mt-0">
+              {activeTab === "notifications" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Notifications</CardTitle>
@@ -458,9 +450,9 @@ const RecipientDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="history" className="mt-0">
+              {activeTab === "history" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Transaction History</CardTitle>
@@ -513,7 +505,7 @@ const RecipientDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
             </div>
           </div>
         </div>

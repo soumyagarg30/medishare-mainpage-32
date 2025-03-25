@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,119 +9,112 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { 
-  Building, 
-  Search, 
-  Package, 
-  Users, 
-  MapPin, 
-  BarChart3, 
-  Bell,
-  CheckCircle2,
+  UserCircle,
+  Package,
+  Search,
   Clock,
-  X
+  Bell,
+  BarChart3,
+  MapPin,
+  CheckCircle2,
+  Truck,
+  Users
 } from "lucide-react";
 
 // Sample available medicines data
 const availableMedicines = [
   {
-    id: "MED-001",
+    id: "MED001",
     name: "Paracetamol",
     quantity: "500 tablets",
-    expiryDate: "2024-12-31",
     donor: "John Doe Pharmaceuticals",
-    location: "Bandra, Mumbai",
-    distance: "2.3 km"
+    expiryDate: "2024-12-31",
+    status: "Available"
   },
   {
-    id: "MED-002",
+    id: "MED002",
     name: "Insulin",
     quantity: "25 vials",
-    expiryDate: "2024-06-15",
     donor: "MediCare Hospital",
-    location: "Andheri, Mumbai",
-    distance: "4.5 km"
+    expiryDate: "2024-06-15",
+    status: "Available"
   },
   {
-    id: "MED-003",
-    name: "Antibiotic Ointment",
-    quantity: "100 tubes",
-    expiryDate: "2025-02-28",
+    id: "MED003",
+    name: "Vitamin C",
+    quantity: "200 tablets",
     donor: "HealthPlus Clinic",
-    location: "Dadar, Mumbai",
-    distance: "3.8 km"
+    expiryDate: "2024-10-20",
+    status: "Reserved"
   }
 ];
 
 // Sample inventory data
-const inventoryData = [
+const inventoryItems = [
   {
-    id: "INV-001",
-    medicine: "Paracetamol",
-    quantity: "200 tablets",
-    expiryDate: "2024-10-15",
-    received: "2023-11-05",
-    donor: "John Doe Pharmaceuticals",
+    id: "INV001",
+    name: "Paracetamol",
+    quantity: "350 tablets",
+    receivedFrom: "John Doe Pharmaceuticals",
+    receivedDate: "2023-11-10",
+    expiryDate: "2024-12-31",
     status: "In Stock"
   },
   {
-    id: "INV-002",
-    medicine: "Vitamin C",
-    quantity: "150 tablets",
+    id: "INV002",
+    name: "Antibiotics",
+    quantity: "100 capsules",
+    receivedFrom: "MediCare Hospital",
+    receivedDate: "2023-11-15",
     expiryDate: "2024-08-20",
-    received: "2023-10-12",
-    donor: "MediCare Hospital",
-    status: "Low Stock"
+    status: "In Stock"
   },
   {
-    id: "INV-003",
-    medicine: "Antibiotic Ointment",
-    quantity: "30 tubes",
-    expiryDate: "2024-05-30",
-    received: "2023-12-01",
-    donor: "HealthPlus Clinic",
-    status: "Distributed"
+    id: "INV003",
+    name: "Insulin",
+    quantity: "15 vials",
+    receivedFrom: "MediCare Hospital",
+    receivedDate: "2023-11-20",
+    expiryDate: "2024-06-15",
+    status: "Low Stock"
   }
 ];
 
 // Sample distribution data
-const distributionData = [
+const distributionHistory = [
   {
-    id: "DIST-001",
-    recipient: "City Hospital",
+    id: "DIST001",
     medicine: "Paracetamol",
-    quantity: "100 tablets",
-    date: "2023-12-15",
-    status: "Completed"
+    quantity: "50 tablets",
+    recipient: "City Hospital",
+    date: "2023-12-01",
+    status: "Delivered"
   },
   {
-    id: "DIST-002",
+    id: "DIST002",
+    medicine: "Antibiotics",
+    quantity: "20 capsules",
     recipient: "Rural Health Camp",
-    medicine: "Vitamin C",
-    quantity: "50 tablets",
-    date: "2023-11-20",
+    date: "2023-12-05",
     status: "In Transit"
+  },
+  {
+    id: "DIST003",
+    medicine: "Insulin",
+    quantity: "5 vials",
+    recipient: "Private Clinic",
+    date: "2023-12-10",
+    status: "Processing"
   }
 ];
 
-// Sample requests data
-const requestsData = [
-  {
-    id: "REQ-001",
-    medicine: "Insulin",
-    quantity: "10 vials",
-    donor: "MediCare Hospital",
-    requestDate: "2023-12-01",
-    status: "Approved"
-  },
-  {
-    id: "REQ-002",
-    medicine: "Antibiotics",
-    quantity: "200 tablets",
-    donor: "HealthPlus Clinic",
-    requestDate: "2023-12-05",
-    status: "Pending"
-  }
-];
+// Sample impact data
+const impactData = {
+  totalMedicinesReceived: 1250,
+  totalMedicinesDistributed: 850,
+  beneficiariesServed: 345,
+  activeDonors: 24
+};
 
 const NGODashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -134,10 +126,10 @@ const NGODashboard = () => {
     (medicineType === "all" || medicine.name.toLowerCase().includes(medicineType.toLowerCase()))
   );
   
-  const handleRequest = (medicine) => {
+  const handleRequestMedicine = (medicine) => {
     toast({
-      title: "Request Sent",
-      description: `Your request for ${medicine.name} has been sent to the donor.`,
+      title: "Medicine Requested",
+      description: `Your request for ${medicine.name} has been sent to ${medicine.donor}.`,
     });
   };
   
@@ -153,86 +145,86 @@ const NGODashboard = () => {
             <div className="md:col-span-3">
               <Card>
                 <CardContent className="p-0">
-                  <Tabs 
-                    value={activeTab} 
-                    onValueChange={setActiveTab}
-                    orientation="vertical" 
-                    className="w-full"
-                  >
-                    <TabsList className="flex flex-col h-auto items-stretch gap-2 bg-transparent">
-                      <TabsTrigger 
-                        value="profile" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Building size={18} />
-                        <span>Profile</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="search" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Search size={18} />
-                        <span>Search Medicines</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="inventory" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Package size={18} />
-                        <span>Inventory</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="donors" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Users size={18} />
-                        <span>Donors</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="location" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <MapPin size={18} />
-                        <span>Location Matching</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="distribution" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <BarChart3 size={18} />
-                        <span>Distribution</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="notifications" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Bell size={18} />
-                        <span>Notifications</span>
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <div className="flex flex-col h-auto items-stretch gap-2 bg-transparent p-1">
+                    <button 
+                      onClick={() => setActiveTab("profile")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "profile" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <UserCircle size={18} />
+                      <span>Profile</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("available")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "available" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Search size={18} />
+                      <span>Available Medicines</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("inventory")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "inventory" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Package size={18} />
+                      <span>Inventory Management</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("distribution")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "distribution" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Truck size={18} />
+                      <span>Distribution</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("requests")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "requests" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Clock size={18} />
+                      <span>Request Status</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("impact")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "impact" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <BarChart3 size={18} />
+                      <span>Impact Metrics</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("donors")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "donors" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Users size={18} />
+                      <span>Donor Interaction</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("notifications")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "notifications" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Bell size={18} />
+                      <span>Notifications</span>
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
             
             {/* Main Content */}
             <div className="md:col-span-9">
-              <TabsContent value="profile" className="mt-0">
+              {activeTab === "profile" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Organization Profile</CardTitle>
-                    <CardDescription>Manage your NGO information</CardDescription>
+                    <CardTitle>NGO Profile</CardTitle>
+                    <CardDescription>Manage your organization's information</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label htmlFor="orgName" className="text-sm font-medium">Organization Name</label>
-                          <Input id="orgName" placeholder="Health For All NGO" defaultValue="Health For All NGO" />
+                          <label htmlFor="name" className="text-sm font-medium">Organization Name</label>
+                          <Input id="name" placeholder="NGO Name" defaultValue="Health For All NGO" />
                         </div>
                         <div className="space-y-2">
                           <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-                          <Input id="email" type="email" placeholder="contact@healthforall.org" defaultValue="contact@healthforall.org" />
+                          <Input id="email" type="email" placeholder="contact@ngo.org" defaultValue="contact@healthforall.org" />
                         </div>
                         <div className="space-y-2">
                           <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
@@ -246,17 +238,28 @@ const NGODashboard = () => {
                       
                       <div className="space-y-2">
                         <label htmlFor="address" className="text-sm font-medium">Address</label>
-                        <Textarea id="address" placeholder="123 Main St, City, State" defaultValue="45 Health Avenue, Bandra, Mumbai, Maharashtra" />
+                        <Textarea id="address" placeholder="123 Main St, City, State" defaultValue="45 NGO Street, Bandra, Mumbai, Maharashtra" />
                       </div>
                       
                       <div className="space-y-2">
                         <label htmlFor="description" className="text-sm font-medium">Organization Description</label>
                         <Textarea 
                           id="description" 
-                          placeholder="Brief description of your organization" 
-                          defaultValue="Health For All is a non-profit organization dedicated to providing medical assistance to underprivileged communities." 
+                          placeholder="Brief description of your NGO" 
+                          defaultValue="Health For All is a non-profit organization dedicated to providing medical support to underserved communities." 
                           className="min-h-[100px]"
                         />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label htmlFor="founder" className="text-sm font-medium">Founder</label>
+                          <Input id="founder" placeholder="Founder Name" defaultValue="Dr. Jane Doe" />
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor="founded" className="text-sm font-medium">Year Founded</label>
+                          <Input id="founded" placeholder="YYYY" defaultValue="2010" />
+                        </div>
                       </div>
                       
                       <Button type="button" className="bg-medishare-blue hover:bg-medishare-blue/90">
@@ -265,13 +268,13 @@ const NGODashboard = () => {
                     </form>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="search" className="mt-0">
+              {activeTab === "available" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Search Available Medicines</CardTitle>
-                    <CardDescription>Find and request medicines from donors</CardDescription>
+                    <CardTitle>Available Medicines</CardTitle>
+                    <CardDescription>Browse and request medicines from donors</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
@@ -280,7 +283,7 @@ const NGODashboard = () => {
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
                             <Input 
-                              placeholder="Search medicines..." 
+                              placeholder="Search available medicines..." 
                               className="pl-10" 
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
@@ -309,26 +312,33 @@ const NGODashboard = () => {
                             <div key={medicine.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                               <div className="flex flex-col md:flex-row justify-between gap-4">
                                 <div>
-                                  <h3 className="font-medium text-lg">{medicine.name}</h3>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-medium text-lg">{medicine.name}</h3>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      medicine.status === "Available" 
+                                        ? "bg-green-100 text-green-800" 
+                                        : "bg-yellow-100 text-yellow-800"
+                                    }`}>
+                                      {medicine.status}
+                                    </span>
+                                  </div>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
                                     <p className="text-sm text-gray-600">
                                       <span className="font-medium">Quantity:</span> {medicine.quantity}
                                     </p>
                                     <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Expiry:</span> {medicine.expiryDate}
+                                      <span className="font-medium">Expiry Date:</span> {medicine.expiryDate}
                                     </p>
                                     <p className="text-sm text-gray-600">
                                       <span className="font-medium">Donor:</span> {medicine.donor}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Location:</span> {medicine.location}
                                     </p>
                                   </div>
                                 </div>
                                 <div className="flex items-center">
                                   <Button 
                                     className="bg-medishare-orange hover:bg-medishare-gold w-full md:w-auto"
-                                    onClick={() => handleRequest(medicine)}
+                                    onClick={() => handleRequestMedicine(medicine)}
+                                    disabled={medicine.status !== "Available"}
                                   >
                                     Request Medicine
                                   </Button>
@@ -345,13 +355,13 @@ const NGODashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="inventory" className="mt-0">
+              {activeTab === "inventory" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Inventory Management</CardTitle>
-                    <CardDescription>Track and manage medicine inventory</CardDescription>
+                    <CardDescription>Track and manage medicines in your inventory</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
@@ -362,246 +372,34 @@ const NGODashboard = () => {
                               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
                               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
                               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Received From</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Received Date</th>
                               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Expiry Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Received</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Donor</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {inventoryData.map((item) => (
-                              <tr key={item.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-4 text-sm">{item.id}</td>
-                                <td className="px-4 py-4 text-sm">{item.medicine}</td>
-                                <td className="px-4 py-4 text-sm">{item.quantity}</td>
-                                <td className="px-4 py-4 text-sm">{item.expiryDate}</td>
-                                <td className="px-4 py-4 text-sm">{item.received}</td>
-                                <td className="px-4 py-4 text-sm">{item.donor}</td>
-                                <td className="px-4 py-4 text-sm">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    item.status === "In Stock" 
-                                      ? "bg-green-100 text-green-800" 
-                                      : item.status === "Low Stock" 
-                                      ? "bg-yellow-100 text-yellow-800" 
-                                      : "bg-blue-100 text-blue-800"
-                                  }`}>
-                                    {item.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      <div className="flex justify-end">
-                        <Button className="bg-medishare-blue hover:bg-medishare-blue/90">
-                          Add New Inventory
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="donors" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Donor Interaction</CardTitle>
-                    <CardDescription>View and communicate with donors</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
-                          <div>
-                            <h3 className="font-medium text-lg">John Doe Pharmaceuticals</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              Bandra, Mumbai
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                              <span className="font-medium">Recent Donations:</span> Paracetamol, Antibiotics
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <Button variant="outline" className="mr-2">Message</Button>
-                            <Button className="bg-medishare-blue hover:bg-medishare-blue/90">View History</Button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
-                          <div>
-                            <h3 className="font-medium text-lg">MediCare Hospital</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              Andheri, Mumbai
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                              <span className="font-medium">Recent Donations:</span> Insulin, Vitamin C
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <Button variant="outline" className="mr-2">Message</Button>
-                            <Button className="bg-medishare-blue hover:bg-medishare-blue/90">View History</Button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
-                          <div>
-                            <h3 className="font-medium text-lg">HealthPlus Clinic</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              Dadar, Mumbai
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                              <span className="font-medium">Recent Donations:</span> Antibiotic Ointment
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <Button variant="outline" className="mr-2">Message</Button>
-                            <Button className="bg-medishare-blue hover:bg-medishare-blue/90">View History</Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="location" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Location-Based Matching</CardTitle>
-                    <CardDescription>Find nearby donors with available medicines</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {/* Map placeholder */}
-                      <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4">
-                        <p className="text-gray-500">Map View (Will be implemented with a mapping library)</p>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="flex flex-col md:flex-row justify-between gap-4">
-                            <div>
-                              <h3 className="font-medium text-lg">John Doe Pharmaceuticals</h3>
-                              <p className="text-sm text-gray-600 mt-1">
-                                <MapPin className="h-4 w-4 inline mr-1" />
-                                2.3 km away - Bandra, Mumbai
-                              </p>
-                              <p className="text-sm text-gray-600 mt-2">
-                                <span className="font-medium">Available:</span> Paracetamol, Antibiotics
-                              </p>
-                            </div>
-                            <div className="flex items-center">
-                              <Button className="bg-medishare-orange hover:bg-medishare-gold">
-                                View Medicines
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="flex flex-col md:flex-row justify-between gap-4">
-                            <div>
-                              <h3 className="font-medium text-lg">MediCare Hospital</h3>
-                              <p className="text-sm text-gray-600 mt-1">
-                                <MapPin className="h-4 w-4 inline mr-1" />
-                                4.5 km away - Andheri, Mumbai
-                              </p>
-                              <p className="text-sm text-gray-600 mt-2">
-                                <span className="font-medium">Available:</span> Insulin, Vitamin C
-                              </p>
-                            </div>
-                            <div className="flex items-center">
-                              <Button className="bg-medishare-orange hover:bg-medishare-gold">
-                                View Medicines
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="distribution" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Distribution Records</CardTitle>
-                    <CardDescription>Track medicine distribution to recipients</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="text-center">
-                              <p className="text-3xl font-bold text-medishare-blue">253</p>
-                              <p className="text-sm text-gray-500 mt-1">Total Medicines Distributed</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="text-center">
-                              <p className="text-3xl font-bold text-medishare-orange">47</p>
-                              <p className="text-sm text-gray-500 mt-1">Recipients Served</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="text-center">
-                              <p className="text-3xl font-bold text-green-600">84%</p>
-                              <p className="text-sm text-gray-500 mt-1">Distribution Efficiency</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Recipient</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
                               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
                               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {distributionData.map((item) => (
+                            {inventoryItems.map((item) => (
                               <tr key={item.id} className="border-b hover:bg-gray-50">
                                 <td className="px-4 py-4 text-sm">{item.id}</td>
-                                <td className="px-4 py-4 text-sm">{item.recipient}</td>
-                                <td className="px-4 py-4 text-sm">{item.medicine}</td>
+                                <td className="px-4 py-4 text-sm font-medium">{item.name}</td>
                                 <td className="px-4 py-4 text-sm">{item.quantity}</td>
-                                <td className="px-4 py-4 text-sm">{item.date}</td>
+                                <td className="px-4 py-4 text-sm">{item.receivedFrom}</td>
+                                <td className="px-4 py-4 text-sm">{item.receivedDate}</td>
+                                <td className="px-4 py-4 text-sm">{item.expiryDate}</td>
                                 <td className="px-4 py-4 text-sm">
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    item.status === "Completed" 
+                                    item.status === "In Stock" 
                                       ? "bg-green-100 text-green-800" 
-                                      : "bg-blue-100 text-blue-800"
+                                      : "bg-yellow-100 text-yellow-800"
                                   }`}>
                                     {item.status}
                                   </span>
                                 </td>
                                 <td className="px-4 py-4 text-sm">
-                                  <Button variant="ghost" size="sm" className="text-gray-500">
-                                    View Details
+                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
+                                    Update
                                   </Button>
                                 </td>
                               </tr>
@@ -612,15 +410,272 @@ const NGODashboard = () => {
                       
                       <div className="flex justify-end">
                         <Button className="bg-medishare-blue hover:bg-medishare-blue/90">
-                          New Distribution
+                          + Add New Item
                         </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="notifications" className="mt-0">
+              {activeTab === "distribution" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Distribution Management</CardTitle>
+                    <CardDescription>Track medicine distribution to recipients</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <Button className="bg-medishare-orange hover:bg-medishare-gold">
+                        + Create New Distribution
+                      </Button>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Recipient</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {distributionHistory.map((distribution) => (
+                              <tr key={distribution.id} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-4 text-sm">{distribution.id}</td>
+                                <td className="px-4 py-4 text-sm">{distribution.medicine}</td>
+                                <td className="px-4 py-4 text-sm">{distribution.quantity}</td>
+                                <td className="px-4 py-4 text-sm">{distribution.recipient}</td>
+                                <td className="px-4 py-4 text-sm">{distribution.date}</td>
+                                <td className="px-4 py-4 text-sm">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    distribution.status === "Delivered" 
+                                      ? "bg-green-100 text-green-800" 
+                                      : distribution.status === "In Transit" 
+                                      ? "bg-blue-100 text-blue-800" 
+                                      : "bg-yellow-100 text-yellow-800"
+                                  }`}>
+                                    {distribution.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-4 text-sm">
+                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
+                                    Update
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {activeTab === "requests" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Request Status</CardTitle>
+                    <CardDescription>Track the status of your medicine requests</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                        <div className="flex flex-col md:flex-row justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-lg">Paracetamol</h3>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Approved
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Quantity:</span> 200 tablets
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Donor:</span> John Doe Pharmaceuticals
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Request Date:</span> 2023-12-01
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Expected Delivery:</span> 2023-12-10
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Button className="bg-medishare-blue hover:bg-medishare-blue/90">
+                              Track Delivery
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex flex-col md:flex-row justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-lg">Insulin</h3>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Pending
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Quantity:</span> 20 vials
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Donor:</span> MediCare Hospital
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Request Date:</span> 2023-12-05
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Button variant="outline">
+                              Cancel Request
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {activeTab === "impact" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Impact Metrics</CardTitle>
+                    <CardDescription>Track your organization's impact</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-medishare-blue">{impactData.totalMedicinesReceived}</p>
+                            <p className="text-sm text-gray-500 mt-1">Medicines Received</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-medishare-orange">{impactData.totalMedicinesDistributed}</p>
+                            <p className="text-sm text-gray-500 mt-1">Medicines Distributed</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-green-600">{impactData.beneficiariesServed}</p>
+                            <p className="text-sm text-gray-500 mt-1">Beneficiaries Served</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-purple-600">{impactData.activeDonors}</p>
+                            <p className="text-sm text-gray-500 mt-1">Active Donors</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    {/* Placeholder for charts */}
+                    <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
+                      <p className="text-gray-500">Distribution Trends Chart (Will be implemented with Recharts)</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {activeTab === "donors" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Donor Interaction</CardTitle>
+                    <CardDescription>View and communicate with donors</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                        <div className="flex justify-between">
+                          <div>
+                            <h3 className="font-medium text-lg">John Doe Pharmaceuticals</h3>
+                            <p className="text-sm text-gray-600">
+                              <MapPin className="h-4 w-4 inline mr-1" />
+                              Mumbai, Maharashtra
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              Donated: Paracetamol, Antibiotics, Vitamins
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            <Button className="h-9 bg-medishare-blue hover:bg-medishare-blue/90">
+                              Contact
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                        <div className="flex justify-between">
+                          <div>
+                            <h3 className="font-medium text-lg">MediCare Hospital</h3>
+                            <p className="text-sm text-gray-600">
+                              <MapPin className="h-4 w-4 inline mr-1" />
+                              Pune, Maharashtra
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              Donated: Insulin, Antibiotics
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            <Button className="h-9 bg-medishare-blue hover:bg-medishare-blue/90">
+                              Contact
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                        <div className="flex justify-between">
+                          <div>
+                            <h3 className="font-medium text-lg">HealthPlus Clinic</h3>
+                            <p className="text-sm text-gray-600">
+                              <MapPin className="h-4 w-4 inline mr-1" />
+                              Mumbai, Maharashtra
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              Donated: Vitamin C, Antibiotic Ointment
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            <Button className="h-9 bg-medishare-blue hover:bg-medishare-blue/90">
+                              Contact
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {activeTab === "notifications" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Notifications</CardTitle>
@@ -634,9 +689,22 @@ const NGODashboard = () => {
                             <CheckCircle2 size={18} className="text-blue-500" />
                           </div>
                           <div>
-                            <h4 className="font-medium text-blue-800">Request Approved</h4>
-                            <p className="text-sm text-gray-600 mt-1">Your request for Insulin from MediCare Hospital has been approved.</p>
-                            <p className="text-xs text-gray-500 mt-2">1 hour ago</p>
+                            <h4 className="font-medium text-blue-800">Medicine Request Approved</h4>
+                            <p className="text-sm text-gray-600 mt-1">Your request for Paracetamol from John Doe Pharmaceuticals has been approved.</p>
+                            <p className="text-xs text-gray-500 mt-2">2 hours ago</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="bg-green-100 p-2 rounded-full">
+                            <Package size={18} className="text-green-500" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">New Medicine Available</h4>
+                            <p className="text-sm text-gray-600 mt-1">MediCare Hospital has added Insulin to available donations.</p>
+                            <p className="text-xs text-gray-500 mt-2">Yesterday</p>
                           </div>
                         </div>
                       </div>
@@ -644,32 +712,19 @@ const NGODashboard = () => {
                       <div className="p-4 border rounded-lg">
                         <div className="flex items-start gap-3">
                           <div className="bg-yellow-100 p-2 rounded-full">
-                            <Clock size={18} className="text-yellow-500" />
+                            <Bell size={18} className="text-yellow-500" />
                           </div>
                           <div>
-                            <h4 className="font-medium">Pending Request</h4>
-                            <p className="text-sm text-gray-600 mt-1">Your request for Antibiotics from HealthPlus Clinic is pending approval.</p>
-                            <p className="text-xs text-gray-500 mt-2">1 day ago</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-red-100 p-2 rounded-full">
-                            <X size={18} className="text-red-500" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Request Declined</h4>
-                            <p className="text-sm text-gray-600 mt-1">Your request for Vitamins from City Pharmaceuticals was declined.</p>
-                            <p className="text-xs text-gray-500 mt-2">3 days ago</p>
+                            <h4 className="font-medium">Low Stock Alert</h4>
+                            <p className="text-sm text-gray-600 mt-1">Insulin inventory is running low. Consider requesting more.</p>
+                            <p className="text-xs text-gray-500 mt-2">2 days ago</p>
                           </div>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
             </div>
           </div>
         </div>

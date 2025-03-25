@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -188,71 +187,64 @@ const AdminDashboard = () => {
             <div className="md:col-span-3">
               <Card>
                 <CardContent className="p-0">
-                  <Tabs 
-                    value={activeTab} 
-                    onValueChange={setActiveTab}
-                    orientation="vertical" 
-                    className="w-full"
-                  >
-                    <TabsList className="flex flex-col h-auto items-stretch gap-2 bg-transparent">
-                      <TabsTrigger 
-                        value="users" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Users size={18} />
-                        <span>User Management</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="medicines" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <CheckSquare size={18} />
-                        <span>Medicine Approval</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="transactions" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Activity size={18} />
-                        <span>Transaction Monitoring</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="analytics" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <BarChart3 size={18} />
-                        <span>Analytics & Reports</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="inventory" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Package size={18} />
-                        <span>Inventory Oversight</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="notifications" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Bell size={18} />
-                        <span>Notifications</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="audit" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <FileText size={18} />
-                        <span>Audit Logs</span>
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <div className="flex flex-col h-auto items-stretch gap-2 bg-transparent p-1">
+                    <button 
+                      onClick={() => setActiveTab("users")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "users" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Users size={18} />
+                      <span>User Management</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("medicines")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "medicines" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <CheckSquare size={18} />
+                      <span>Medicine Approval</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("transactions")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "transactions" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Activity size={18} />
+                      <span>Transaction Monitoring</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("analytics")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "analytics" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <BarChart3 size={18} />
+                      <span>Analytics & Reports</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("inventory")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "inventory" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Package size={18} />
+                      <span>Inventory Oversight</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("notifications")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "notifications" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Bell size={18} />
+                      <span>Notifications</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("audit")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "audit" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <FileText size={18} />
+                      <span>Audit Logs</span>
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
             
             {/* Main Content */}
             <div className="md:col-span-9">
-              <TabsContent value="users" className="mt-0">
+              {activeTab === "users" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>User Management</CardTitle>
@@ -394,9 +386,9 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="medicines" className="mt-0">
+              {activeTab === "medicines" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Medicine Approval</CardTitle>
@@ -475,9 +467,9 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="transactions" className="mt-0">
+              {activeTab === "transactions" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Transaction Monitoring</CardTitle>
@@ -541,9 +533,9 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="analytics" className="mt-0">
+              {activeTab === "analytics" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Analytics & Reports</CardTitle>
@@ -660,9 +652,9 @@ const AdminDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="inventory" className="mt-0">
+              {activeTab === "inventory" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Inventory Oversight</CardTitle>
@@ -729,162 +721,116 @@ const AdminDashboard = () => {
                           </tbody>
                         </table>
                       </div>
-                      
-                      <div className="flex justify-end">
-                        <Button className="bg-medishare-orange hover:bg-medishare-gold">
-                          Issue Shortage Alert
-                        </Button>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="notifications" className="mt-0">
+              {activeTab === "notifications" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Notifications & Alerts</CardTitle>
-                    <CardDescription>Important system notifications and flagged activities</CardDescription>
+                    <CardTitle>Notifications</CardTitle>
+                    <CardDescription>System alerts and important updates</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="p-4 border rounded-lg bg-red-50 border-red-200">
+                      <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
                         <div className="flex items-start gap-3">
-                          <div className="bg-red-100 p-2 rounded-full">
-                            <X size={18} className="text-red-500" />
+                          <div className="bg-blue-100 p-2 rounded-full">
+                            <Bell size={18} className="text-blue-500" />
                           </div>
                           <div>
-                            <h4 className="font-medium text-red-800">Suspicious Activity Detected</h4>
-                            <p className="text-sm text-gray-600 mt-1">Multiple failed login attempts for admin account from unknown IP.</p>
-                            <p className="text-xs text-gray-500 mt-2">30 minutes ago</p>
-                          </div>
-                          <div className="ml-auto">
-                            <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50">
-                              Investigate
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-yellow-100 p-2 rounded-full">
-                            <Clock size={18} className="text-yellow-500" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-yellow-800">Expiring Medicines Alert</h4>
-                            <p className="text-sm text-gray-600 mt-1">15 medicine batches are set to expire within the next 30 days.</p>
-                            <p className="text-xs text-gray-500 mt-2">2 hours ago</p>
-                          </div>
-                          <div className="ml-auto">
-                            <Button size="sm" variant="outline" className="text-yellow-500 border-yellow-200 hover:bg-yellow-50">
-                              View List
-                            </Button>
+                            <h4 className="font-medium text-blue-800">New Registration</h4>
+                            <p className="text-sm text-gray-600 mt-1">A new NGO has registered and is awaiting approval.</p>
+                            <p className="text-xs text-gray-500 mt-2">15 minutes ago</p>
                           </div>
                         </div>
                       </div>
                       
                       <div className="p-4 border rounded-lg">
                         <div className="flex items-start gap-3">
-                          <div className="bg-blue-100 p-2 rounded-full">
-                            <CheckCircle2 size={18} className="text-blue-500" />
+                          <div className="bg-green-100 p-2 rounded-full">
+                            <Package size={18} className="text-green-500" />
                           </div>
                           <div>
-                            <h4 className="font-medium">New User Registrations</h4>
-                            <p className="text-sm text-gray-600 mt-1">3 new users have registered and are pending approval.</p>
-                            <p className="text-xs text-gray-500 mt-2">1 day ago</p>
+                            <h4 className="font-medium">Medicine Donation</h4>
+                            <p className="text-sm text-gray-600 mt-1">John Doe Pharmaceuticals has submitted a new donation.</p>
+                            <p className="text-xs text-gray-500 mt-2">1 hour ago</p>
                           </div>
-                          <div className="ml-auto">
-                            <Button size="sm" variant="outline" className="text-blue-500 border-blue-200 hover:bg-blue-50">
-                              Review
-                            </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div className="bg-yellow-100 p-2 rounded-full">
+                            <Clock size={18} className="text-yellow-500" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Expiring Inventory</h4>
+                            <p className="text-sm text-gray-600 mt-1">Some medicines will expire in the next 30 days. Review needed.</p>
+                            <p className="text-xs text-gray-500 mt-2">3 hours ago</p>
                           </div>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="audit" className="mt-0">
+              {activeTab === "audit" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Audit Logs</CardTitle>
-                    <CardDescription>Track user activities for compliance and security</CardDescription>
+                    <CardDescription>Track system activities for compliance and security</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Timestamp</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">User</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Action</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">IP Address</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="border-b hover:bg-gray-50">
-                              <td className="px-4 py-4 text-sm">2023-12-10 14:32:15</td>
-                              <td className="px-4 py-4 text-sm">admin@medishare.org</td>
-                              <td className="px-4 py-4 text-sm">User approval</td>
-                              <td className="px-4 py-4 text-sm">192.168.1.100</td>
-                              <td className="px-4 py-4 text-sm">
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Success
-                                </span>
-                              </td>
-                            </tr>
-                            <tr className="border-b hover:bg-gray-50">
-                              <td className="px-4 py-4 text-sm">2023-12-10 13:45:22</td>
-                              <td className="px-4 py-4 text-sm">admin@medishare.org</td>
-                              <td className="px-4 py-4 text-sm">Medicine approval</td>
-                              <td className="px-4 py-4 text-sm">192.168.1.100</td>
-                              <td className="px-4 py-4 text-sm">
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Success
-                                </span>
-                              </td>
-                            </tr>
-                            <tr className="border-b hover:bg-gray-50">
-                              <td className="px-4 py-4 text-sm">2023-12-10 12:15:10</td>
-                              <td className="px-4 py-4 text-sm">admin@medishare.org</td>
-                              <td className="px-4 py-4 text-sm">Login</td>
-                              <td className="px-4 py-4 text-sm">192.168.1.100</td>
-                              <td className="px-4 py-4 text-sm">
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Success
-                                </span>
-                              </td>
-                            </tr>
-                            <tr className="border-b hover:bg-gray-50">
-                              <td className="px-4 py-4 text-sm">2023-12-10 11:59:45</td>
-                              <td className="px-4 py-4 text-sm">admin@medishare.org</td>
-                              <td className="px-4 py-4 text-sm">Login</td>
-                              <td className="px-4 py-4 text-sm">198.51.100.25</td>
-                              <td className="px-4 py-4 text-sm">
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                  Failed
-                                </span>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-gray-500">Showing recent activities</p>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" disabled>Previous</Button>
-                          <Button variant="outline" size="sm">Next</Button>
-                        </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Timestamp</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">User</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Action</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Details</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">IP Address</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-4 text-sm">2023-12-05 10:15 AM</td>
+                            <td className="px-4 py-4 text-sm">admin@medishare.org</td>
+                            <td className="px-4 py-4 text-sm">User Approval</td>
+                            <td className="px-4 py-4 text-sm">Approved registration of Health For All NGO</td>
+                            <td className="px-4 py-4 text-sm">192.168.1.1</td>
+                          </tr>
+                          <tr className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-4 text-sm">2023-12-05 09:32 AM</td>
+                            <td className="px-4 py-4 text-sm">admin@medishare.org</td>
+                            <td className="px-4 py-4 text-sm">Medicine Approval</td>
+                            <td className="px-4 py-4 text-sm">Approved Paracetamol donation from John Doe Pharmaceuticals</td>
+                            <td className="px-4 py-4 text-sm">192.168.1.1</td>
+                          </tr>
+                          <tr className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-4 text-sm">2023-12-04 04:45 PM</td>
+                            <td className="px-4 py-4 text-sm">admin@medishare.org</td>
+                            <td className="px-4 py-4 text-sm">Login</td>
+                            <td className="px-4 py-4 text-sm">Successful admin login</td>
+                            <td className="px-4 py-4 text-sm">192.168.1.1</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div className="flex justify-between items-center mt-4">
+                      <p className="text-sm text-gray-500">Showing 3 of 1,245 logs</p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" disabled>Previous</Button>
+                        <Button variant="outline" size="sm">Next</Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
             </div>
           </div>
         </div>

@@ -118,68 +118,60 @@ const DonorDashboard = () => {
           <h1 className="text-3xl font-bold text-medishare-dark mb-6">Donor Dashboard</h1>
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            {/* Sidebar */}
             <div className="md:col-span-3">
               <Card>
                 <CardContent className="p-0">
-                  <Tabs 
-                    value={activeTab} 
-                    onValueChange={setActiveTab}
-                    orientation="vertical" 
-                    className="w-full"
-                  >
-                    <TabsList className="flex flex-col h-auto items-stretch gap-2 bg-transparent">
-                      <TabsTrigger 
-                        value="profile" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <UserCircle size={18} />
-                        <span>Profile</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="donate" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Package size={18} />
-                        <span>Donate Medicines</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="history" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <History size={18} />
-                        <span>Donation History</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="impact" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <BarChart3 size={18} />
-                        <span>Impact Metrics</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="notifications" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <Bell size={18} />
-                        <span>Notifications</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="nearby" 
-                        className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-medishare-blue/10 data-[state=active]:text-medishare-blue"
-                      >
-                        <MapPin size={18} />
-                        <span>Nearby NGOs</span>
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <div className="flex flex-col h-auto items-stretch gap-2 bg-transparent p-1">
+                    <button 
+                      onClick={() => setActiveTab("profile")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "profile" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <UserCircle size={18} />
+                      <span>Profile</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("donate")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "donate" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Package size={18} />
+                      <span>Donate Medicines</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("history")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "history" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <History size={18} />
+                      <span>Donation History</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("impact")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "impact" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <BarChart3 size={18} />
+                      <span>Impact Metrics</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("notifications")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "notifications" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Bell size={18} />
+                      <span>Notifications</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("nearby")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "nearby" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <MapPin size={18} />
+                      <span>Nearby NGOs</span>
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
             
             {/* Main Content */}
             <div className="md:col-span-9">
-              <TabsContent value="profile" className="mt-0">
+              {activeTab === "profile" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Profile Management</CardTitle>
@@ -217,9 +209,9 @@ const DonorDashboard = () => {
                     </form>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="donate" className="mt-0">
+              {activeTab === "donate" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Donate Medicines</CardTitle>
@@ -333,9 +325,9 @@ const DonorDashboard = () => {
                     </Form>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="history" className="mt-0">
+              {activeTab === "history" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Donation History</CardTitle>
@@ -388,9 +380,9 @@ const DonorDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="impact" className="mt-0">
+              {activeTab === "impact" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Impact Metrics</CardTitle>
@@ -442,9 +434,9 @@ const DonorDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="notifications" className="mt-0">
+              {activeTab === "notifications" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Notifications</CardTitle>
@@ -493,9 +485,9 @@ const DonorDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
               
-              <TabsContent value="nearby" className="mt-0">
+              {activeTab === "nearby" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Nearby NGOs</CardTitle>
@@ -549,7 +541,7 @@ const DonorDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
             </div>
           </div>
         </div>
