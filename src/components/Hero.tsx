@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -14,7 +13,7 @@ const Hero = () => {
           <div className="order-2 lg:order-1 space-y-6 max-w-2xl">
             <div className="animate-fade-in-up [animation-delay:0.2s] opacity-0">
               <h1 className="text-medishare-dark font-bold leading-tight text-balance">
-                Leftover meds? Give them a second life—donate today!
+                Leftover meds? Give them a <span className="text-medishare-orange">second life</span>—donate today!
               </h1>
             </div>
             
