@@ -4,12 +4,13 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { verifyGSTID, verifyUID, verifyDigiLocker, verifyAdminCode } from "@/utils/verificationApis";
-import { registerUser, isAuthenticated, UserType } from "@/utils/auth";
+import { registerUser, isAuthenticated, UserType, initializeAuth, setupAuthListener } from "@/utils/auth";
 import UserTypeSelector from "@/components/registration/UserTypeSelector";
 import RegistrationSuccess from "@/components/registration/RegistrationSuccess";
 import DonorRegistrationForm from "@/components/registration/DonorRegistrationForm";
@@ -30,33 +31,59 @@ const Register = () => {
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [initializingAuth, setInitializingAuth] = useState(true);
 
   // Check if user is already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
-      // Redirect to appropriate dashboard based on user type
-      const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+    const checkAuth = async () => {
+      setInitializingAuth(true);
+      const isAuthed = await initializeAuth();
       
-      if (user.userType) {
-        switch(user.userType) {
-          case "donor":
-            navigate("/donor-dashboard");
-            break;
-          case "ngo":
-            navigate("/ngo-dashboard");
-            break;
-          case "recipient":
-            navigate("/recipient-dashboard");
-            break;
-          case "admin":
-            navigate("/admin-dashboard");
-            break;
-          default:
-            navigate("/");
-        }
+      if (isAuthed) {
+        redirectToDashboard();
+      }
+      
+      setInitializingAuth(false);
+    };
+    
+    checkAuth();
+    
+    // Set up auth state listener
+    const { data: { subscription } } = setupAuthListener((user) => {
+      if (user) {
+        redirectToDashboard();
+      }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+  
+  const redirectToDashboard = () => {
+    // Redirect to appropriate dashboard based on user type
+    const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+    
+    if (user.userType) {
+      switch(user.userType) {
+        case "donor":
+          navigate("/donor-dashboard");
+          break;
+        case "ngo":
+          navigate("/ngo-dashboard");
+          break;
+        case "recipient":
+          navigate("/recipient-dashboard");
+          break;
+        case "admin":
+          navigate("/admin-dashboard");
+          break;
+        default:
+          navigate("/");
       }
     }
-  }, [navigate]);
+  };
 
   // Create forms with React Hook Form + Zod
   const donorForm = useForm({
@@ -113,21 +140,27 @@ const Register = () => {
 
   const handleUserTypeSelection = (type: UserType) => {
     setUserType(type);
+    setErrorMessage(null);
   };
 
   const nextStep = () => {
     if (step === 1 && userType) {
       setStep(2);
+      setErrorMessage(null);
     }
   };
 
   const previousStep = () => {
     if (step === 2) {
       setStep(1);
+      setErrorMessage(null);
     }
   };
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
+    // Clear previous errors
+    setErrorMessage(null);
+    
     // Set isVerifying to true
     setIsVerifying(true);
     
@@ -160,6 +193,7 @@ const Register = () => {
       setIsVerifying(false);
       
       if (!verificationResult.valid) {
+        setErrorMessage(verificationResult.message || "Could not verify your credentials. Please check and try again.");
         toast({
           title: "Verification Failed",
           description: verificationResult.message || "Could not verify your credentials. Please check and try again.",
@@ -193,16 +227,18 @@ const Register = () => {
         
         setRegistrationComplete(true);
       } else {
+        setErrorMessage(registrationResult.message || "An error occurred during registration.");
         toast({
           title: "Registration Failed",
           description: registrationResult.message || "An error occurred during registration.",
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       setIsVerifying(false);
       setIsRegistering(false);
       console.error("Registration error:", error);
+      setErrorMessage(error.message || "An unexpected error occurred. Please try again.");
       toast({
         title: "Registration error",
         description: "An unexpected error occurred. Please try again.",
@@ -251,6 +287,17 @@ const Register = () => {
     }
   };
 
+  if (initializingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medishare-orange mx-auto"></div>
+          <p className="mt-4 text-gray-600">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -269,6 +316,14 @@ const Register = () => {
           ) : (
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="p-6 md:p-8">
+                {errorMessage && (
+                  <Alert variant="destructive" className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                )}
+                
                 {step === 1 && (
                   <UserTypeSelector 
                     selectedType={userType} 

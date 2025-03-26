@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
-import { isAuthenticated, getUser, logoutUser, UserType } from "@/utils/auth";
+import { isAuthenticated, getUser, logoutUser, UserType, setupAuthListener } from "@/utils/auth";
 import { getRedirectPath } from "@/utils/routeGuard";
 
 const Navbar = () => {
@@ -21,6 +21,7 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userType, setUserType] = useState<UserType | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   
   useEffect(() => {
     // Check authentication status
@@ -32,14 +33,22 @@ const Navbar = () => {
         const user = getUser();
         if (user) {
           setUserType(user.userType);
+          setUserName(user.name);
         }
+      } else {
+        setUserType(null);
+        setUserName(null);
       }
     };
     
     checkAuth();
     
-    // Check auth on storage changes (for multi-tab support)
-    window.addEventListener('storage', checkAuth);
+    // Set up auth state listener
+    const { data: { subscription } } = setupAuthListener((user) => {
+      setIsLoggedIn(!!user);
+      setUserType(user?.userType || null);
+      setUserName(user?.name || null);
+    });
     
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -53,7 +62,7 @@ const Navbar = () => {
     
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener('storage', checkAuth);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -61,16 +70,14 @@ const Navbar = () => {
     setMenuOpen(!menuOpen);
   };
   
-  const handleLogout = () => {
-    const result = logoutUser();
+  const handleLogout = async () => {
+    const result = await logoutUser();
     
     if (result.success) {
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
-      setIsLoggedIn(false);
-      setUserType(null);
       navigate("/");
     } else {
       toast({
@@ -126,7 +133,7 @@ const Navbar = () => {
                       className={`${isScrolled ? "text-medishare-blue" : "text-white"} flex items-center gap-2 hover:bg-opacity-20`}
                     >
                       <UserCircle className="h-5 w-5" />
-                      <span>Account</span>
+                      <span>{userName || "Account"}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">

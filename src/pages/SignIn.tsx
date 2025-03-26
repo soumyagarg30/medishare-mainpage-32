@@ -12,8 +12,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Building, HeartHandshake, Shield, LockIcon, MailIcon } from "lucide-react";
-import { UserType, isAuthenticated, loginUser } from "@/utils/auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { UserPlus, Building, HeartHandshake, Shield, LockIcon, MailIcon, AlertCircle } from "lucide-react";
+import { UserType, isAuthenticated, loginUser, initializeAuth, setupAuthListener } from "@/utils/auth";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -29,33 +30,59 @@ const SignIn = () => {
   const navigate = useNavigate();
   const [userType, setUserType] = useState<UserType>("donor");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [initializingAuth, setInitializingAuth] = useState(true);
   
   // Check if user is already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
-      // Redirect to appropriate dashboard based on user type
-      const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+    const checkAuth = async () => {
+      setInitializingAuth(true);
+      const isAuthed = await initializeAuth();
       
-      if (user.userType) {
-        switch(user.userType) {
-          case "donor":
-            navigate("/donor-dashboard");
-            break;
-          case "ngo":
-            navigate("/ngo-dashboard");
-            break;
-          case "recipient":
-            navigate("/recipient-dashboard");
-            break;
-          case "admin":
-            navigate("/admin-dashboard");
-            break;
-          default:
-            navigate("/");
-        }
+      if (isAuthed) {
+        redirectToDashboard();
+      }
+      
+      setInitializingAuth(false);
+    };
+    
+    checkAuth();
+    
+    // Set up auth state listener
+    const { data: { subscription } } = setupAuthListener((user) => {
+      if (user) {
+        redirectToDashboard();
+      }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+  
+  const redirectToDashboard = () => {
+    // Redirect to appropriate dashboard based on user type
+    const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+    
+    if (user.userType) {
+      switch(user.userType) {
+        case "donor":
+          navigate("/donor-dashboard");
+          break;
+        case "ngo":
+          navigate("/ngo-dashboard");
+          break;
+        case "recipient":
+          navigate("/recipient-dashboard");
+          break;
+        case "admin":
+          navigate("/admin-dashboard");
+          break;
+        default:
+          navigate("/");
       }
     }
-  }, [navigate]);
+  };
   
   // Create form with React Hook Form + Zod
   const form = useForm({
@@ -68,6 +95,7 @@ const SignIn = () => {
 
   const onSubmit = async (data: z.infer<typeof loginFormSchema>) => {
     setIsLoading(true);
+    setErrorMessage(null);
     
     try {
       const result = await loginUser(data.email, data.password, userType);
@@ -78,24 +106,9 @@ const SignIn = () => {
           description: `Welcome back to MediShare as a ${userType}.`,
         });
         
-        // Navigate to appropriate dashboard based on user type
-        switch(userType) {
-          case "donor":
-            navigate("/donor-dashboard");
-            break;
-          case "ngo":
-            navigate("/ngo-dashboard");
-            break;
-          case "recipient":
-            navigate("/recipient-dashboard");
-            break;
-          case "admin":
-            navigate("/admin-dashboard");
-            break;
-          default:
-            navigate("/");
-        }
+        // Redirect will happen via the auth listener
       } else {
+        setErrorMessage(result.message || "An error occurred during login.");
         toast({
           title: "Login failed",
           description: result.message || "An error occurred during login.",
@@ -104,6 +117,7 @@ const SignIn = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
       toast({
         title: "Login error",
         description: "An unexpected error occurred. Please try again.",
@@ -113,6 +127,17 @@ const SignIn = () => {
       setIsLoading(false);
     }
   };
+
+  if (initializingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medishare-orange mx-auto"></div>
+          <p className="mt-4 text-gray-600">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -134,6 +159,14 @@ const SignIn = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {errorMessage && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+              
               <Tabs value={userType} onValueChange={(value) => setUserType(value as UserType)} className="w-full">
                 <TabsList className="grid grid-cols-4 mb-8">
                   <TabsTrigger value="donor" className="flex flex-col items-center gap-2 py-3">
@@ -213,7 +246,12 @@ const SignIn = () => {
                       className="w-full bg-medishare-orange hover:bg-medishare-gold"
                       disabled={isLoading}
                     >
-                      {isLoading ? "Signing in..." : "Sign In"}
+                      {isLoading ? (
+                        <>
+                          <span className="animate-spin mr-2">⭘</span>
+                          Signing in...
+                        </>
+                      ) : "Sign In"}
                     </Button>
                   </form>
                 </Form>
