@@ -5,7 +5,6 @@ import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Stats from "../components/Stats";
 import Footer from "../components/Footer";
-import TrustedBy from "../components/TrustedBy";
 
 const Index = () => {
   useEffect(() => {
@@ -20,7 +19,6 @@ const Index = () => {
         <Hero />
         <Stats />
         <AboutPreview />
-        <TrustedBy />
       </main>
       <Footer />
     </div>
