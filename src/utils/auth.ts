@@ -294,6 +294,28 @@ export const registerUser = async (
       };
     }
     
+    // Manually insert the user profile directly in case the trigger fails
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .insert({
+        id: data.user.id,
+        user_type: userData.userType,
+        name: userData.name || userData.email.split('@')[0],
+        email: userData.email,
+        verified: false,
+        organization: userData.organization,
+        address: userData.address,
+        phone_number: userData.phoneNumber,
+        verification_id: verificationId,
+        department: userData.department
+      });
+      
+    if (profileError) {
+      console.error("Error creating user profile:", profileError);
+      // We don't return error here as the auth user was created successfully
+      // The profile might be created by the database trigger
+    }
+    
     // Create user data
     const newUser: UserData = {
       id: data.user.id,
