@@ -31,8 +31,6 @@ const Footer = () => {
               <li><Link to="/about" className="text-gray-300 hover:text-medishare-orange transition duration-300">About Us</Link></li>
               <li><Link to="/donors" className="text-gray-300 hover:text-medishare-orange transition duration-300">Donate Medicines</Link></li>
               <li><Link to="/recipients" className="text-gray-300 hover:text-medishare-orange transition duration-300">Request Medicines</Link></li>
-              <li><Link to="/register" className="text-gray-300 hover:text-medishare-orange transition duration-300">Register</Link></li>
-              <li><Link to="/sign-in" className="text-gray-300 hover:text-medishare-orange transition duration-300">Sign In</Link></li>
             </ul>
           </div>
 
