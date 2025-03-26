@@ -1,3 +1,4 @@
+
 /**
  * Authentication utilities for MediShare
  */
@@ -18,20 +19,6 @@ export interface UserData {
   phoneNumber?: string;
   verificationId?: string; // GST ID, UID, DigiLocker ID, or Admin code
   department?: string; // For admin users
-}
-
-// Medicine interface
-export interface MedicineData {
-  id: string;
-  name: string;
-  quantity: string;
-  expiryDate: string;
-  activeIngredients?: string[];
-  description?: string;
-  image?: string;
-  donorId: string;
-  status: 'pending' | 'approved' | 'collected' | 'distributed';
-  createdAt: string;
 }
 
 // Local storage keys
@@ -175,64 +162,5 @@ export const registerUser = async (
     success: true,
     userData: newUser,
     message: "Registration successful! Your account is pending verification."
-  };
-};
-
-/**
- * Validate a GST ID
- * Proper GST format: 22AAAAA0000A1Z5
- * - First 2 digits: state code
- * - Next 10 characters: PAN number
- * - Next character: Entity number
- * - Next character: Z (reserved)
- * - Last character: Check digit
- */
-export const validateGSTID = (gstID: string): boolean => {
-  // Basic regex pattern for GST ID
-  const gstPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-  
-  // Check pattern
-  if (!gstPattern.test(gstID)) {
-    return false;
-  }
-  
-  // Additional validation can be added here (state code check, checksum, etc.)
-  // For demo purposes, we'll keep it simple with just the pattern check
-  
-  return true;
-};
-
-/**
- * Validate medicine data before submission
- */
-export const validateMedicineSubmission = (medicineData: Partial<MedicineData>): {
-  isValid: boolean;
-  errors?: Record<string, string>;
-} => {
-  const errors: Record<string, string> = {};
-  
-  // Basic required field validation
-  if (!medicineData.name) {
-    errors.name = "Medicine name is required";
-  }
-  
-  if (!medicineData.quantity) {
-    errors.quantity = "Quantity is required";
-  }
-  
-  if (!medicineData.expiryDate) {
-    errors.expiryDate = "Expiry date is required";
-  } else {
-    // Check if expiry date is in the future
-    const expiryDate = new Date(medicineData.expiryDate);
-    const today = new Date();
-    if (expiryDate < today) {
-      errors.expiryDate = "Expiry date must be in the future";
-    }
-  }
-  
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors: Object.keys(errors).length > 0 ? errors : undefined
   };
 };
