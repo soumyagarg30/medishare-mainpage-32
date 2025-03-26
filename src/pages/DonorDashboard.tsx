@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -33,6 +32,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import DonorActivityChart from "@/components/charts/DonorActivityChart";
+import MedicineCategoryChart from "@/components/charts/MedicineCategoryChart";
+import DonationMap from "@/components/maps/DonationMap";
 
 // Sample donation data
 const donationHistory = [
@@ -201,6 +203,13 @@ const DonorDashboard = () => {
                     >
                       <MapPin size={18} />
                       <span>Nearby NGOs</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("analytics")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "analytics" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <BarChart3 size={18} />
+                      <span>Analytics Dashboard</span>
                     </button>
                   </div>
                 </CardContent>
@@ -589,6 +598,63 @@ const DonorDashboard = () => {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {activeTab === "analytics" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Analytics Dashboard</CardTitle>
+                    <CardDescription>Track your donation impact and activity</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-medishare-orange">28</p>
+                            <p className="text-sm text-gray-500 mt-1">Total Donations</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-medishare-blue">12</p>
+                            <p className="text-sm text-gray-500 mt-1">Recipients Served</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-green-600">4</p>
+                            <p className="text-sm text-gray-500 mt-1">Active Listings</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-purple-600">98%</p>
+                            <p className="text-sm text-gray-500 mt-1">Satisfaction Rate</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <DonorActivityChart title="Donation History" />
+                      <MedicineCategoryChart title="Medicine Categories" />
+                    </div>
+                    
+                    <div className="mt-6">
+                      <DonationMap title="Donation Centers Near Me" />
                     </div>
                   </CardContent>
                 </Card>
