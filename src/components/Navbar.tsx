@@ -1,14 +1,46 @@
 
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Menu, X, UserCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, UserCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
+import { isAuthenticated, getUser, logoutUser, UserType } from "@/utils/auth";
+import { getRedirectPath } from "@/utils/routeGuard";
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userType, setUserType] = useState<UserType | null>(null);
+  
   useEffect(() => {
+    // Check authentication status
+    const checkAuth = () => {
+      const authenticated = isAuthenticated();
+      setIsLoggedIn(authenticated);
+      
+      if (authenticated) {
+        const user = getUser();
+        if (user) {
+          setUserType(user.userType);
+        }
+      }
+    };
+    
+    checkAuth();
+    
+    // Check auth on storage changes (for multi-tab support)
+    window.addEventListener('storage', checkAuth);
+    
     const handleScroll = () => {
       if (window.scrollY > 10) {
         setIsScrolled(true);
@@ -18,13 +50,47 @@ const Navbar = () => {
     };
 
     window.addEventListener("scroll", handleScroll);
+    
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener('storage', checkAuth);
     };
   }, []);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
+  };
+  
+  const handleLogout = () => {
+    const result = logoutUser();
+    
+    if (result.success) {
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      setIsLoggedIn(false);
+      setUserType(null);
+      navigate("/");
+    } else {
+      toast({
+        title: "Logout failed",
+        description: result.message || "An error occurred during logout.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getDashboardLink = () => {
+    if (!userType) return "/";
+    
+    switch(userType) {
+      case "donor": return "/donor-dashboard";
+      case "ngo": return "/ngo-dashboard";
+      case "recipient": return "/recipient-dashboard";
+      case "admin": return "/admin-dashboard";
+      default: return "/";
+    }
   };
 
   return (
@@ -50,15 +116,47 @@ const Navbar = () => {
             <NavLink href="/ngos" label="NGOs" isScrolled={isScrolled} />
             <NavLink href="/donors" label="Donors" isScrolled={isScrolled} />
             
-            <Link to="/sign-in">
-              <Button 
-                variant="default" 
-                size="sm"
-                className="bg-medishare-orange hover:bg-medishare-gold text-white"
-              >
-                Sign In
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <div className="flex items-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className={`${isScrolled ? "text-medishare-blue" : "text-white"} flex items-center gap-2 hover:bg-opacity-20`}
+                    >
+                      <UserCircle className="h-5 w-5" />
+                      <span>Account</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to={getDashboardLink()}>Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ) : (
+              <Link to="/sign-in">
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="bg-medishare-orange hover:bg-medishare-gold text-white"
+                >
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -83,7 +181,25 @@ const Navbar = () => {
               <MobileNavLink href="/recipients" label="Recipients" onClick={toggleMenu} />
               <MobileNavLink href="/ngos" label="NGOs" onClick={toggleMenu} />
               <MobileNavLink href="/donors" label="Donors" onClick={toggleMenu} />
-              <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />
+              
+              {isLoggedIn ? (
+                <>
+                  <MobileNavLink href={getDashboardLink()} label="Dashboard" onClick={toggleMenu} />
+                  <MobileNavLink href="/profile" label="Profile" onClick={toggleMenu} />
+                  <div 
+                    className="text-white hover:text-medishare-gold font-medium transition duration-300 px-4 py-2 flex items-center space-x-2 cursor-pointer"
+                    onClick={() => {
+                      handleLogout();
+                      toggleMenu();
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </div>
+                </>
+              ) : (
+                <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />
+              )}
             </div>
           </div>
         )}

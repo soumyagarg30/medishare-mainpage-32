@@ -56,6 +56,26 @@ export const isAuthenticated = (): boolean => {
 };
 
 /**
+ * Logout the current user
+ * @returns Object indicating success and optional message
+ */
+export const logoutUser = (): {success: boolean; message?: string} => {
+  try {
+    removeUser();
+    return {
+      success: true,
+      message: "Successfully logged out"
+    };
+  } catch (error) {
+    console.error("Logout error:", error);
+    return {
+      success: false,
+      message: "Error during logout"
+    };
+  }
+};
+
+/**
  * Mock login function
  * In a production environment, this would connect to your backend API
  */
