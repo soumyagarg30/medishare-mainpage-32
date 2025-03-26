@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import DonationChart from "@/components/charts/DonationChart";
+import DistributionChart from "@/components/charts/DistributionChart";
+import ImpactChart from "@/components/charts/ImpactChart";
+import DonorsMap from "@/components/maps/DonorsMap";
 import { 
   UserCircle,
   Package,
@@ -591,8 +595,9 @@ const NGODashboard = () => {
                       </Card>
                     </div>
                     
-                    <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
-                      <p className="text-gray-500">Distribution Trends Chart (Will be implemented with Recharts)</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <DistributionChart title="Medicine Distribution Trends" />
+                      <ImpactChart title="Medicine Categories" />
                     </div>
                   </CardContent>
                 </Card>
@@ -605,10 +610,8 @@ const NGODashboard = () => {
                     <CardDescription>Find donors in your area that have medicines available</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4">
-                        <p className="text-gray-500">Map View (Will be implemented with a mapping library)</p>
-                      </div>
+                    <div className="space-y-6">
+                      <DonorsMap title="" className="border-0 shadow-none" />
                       
                       <div className="space-y-4">
                         <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
