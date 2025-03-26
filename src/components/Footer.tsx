@@ -1,104 +1,94 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { MapPin, Phone, Mail, ArrowRight, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-medishare-dark text-white">
-      <div className="container mx-auto px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center mb-4">
+    <footer className="bg-medishare-dark text-white pt-16 pb-8">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+          {/* Logo and about column */}
+          <div className="col-span-1 md:col-span-1">
+            <Link to="/" className="mb-6 inline-block">
               <img 
                 src="/lovable-uploads/45a81f67-90b3-43d3-9499-2a874a4d48be.png" 
                 alt="MediShare Logo" 
-                className="h-14 w-auto mr-2 bg-white rounded-full p-1 shadow-md" 
+                className="h-16 w-auto" // Increased size from h-12 to h-16
               />
-              <span className="text-2xl font-display font-bold">MediShare</span>
-            </div>
-            <p className="text-gray-300 mb-4 text-sm">
-              Connecting surplus medicines with those in need. Join our mission for a healthier, more sustainable world.
+            </Link>
+            <p className="text-gray-300 mt-4 text-sm">
+              Bridging the gap between surplus medicine and those in need. 
+              Join us in transforming surplus into life-saving solutions.
             </p>
-            <div className="flex space-x-4">
-              <SocialIcon icon={<Facebook size={18} />} href="#" />
-              <SocialIcon icon={<Twitter size={18} />} href="#" />
-              <SocialIcon icon={<Instagram size={18} />} href="#" />
-              <SocialIcon icon={<Linkedin size={18} />} href="#" />
-            </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+          {/* Quick links column */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <FooterLink href="/" label="Home" />
-              <FooterLink href="/about" label="About Us" />
-              <FooterLink href="/how-it-works" label="How It Works" />
-              <FooterLink href="/sign-in" label="Donate Medicines" />
-              <FooterLink href="/sign-in" label="Request Medicines" />
+              <li><Link to="/" className="text-gray-300 hover:text-medishare-orange transition duration-300">Home</Link></li>
+              <li><Link to="/about" className="text-gray-300 hover:text-medishare-orange transition duration-300">About Us</Link></li>
+              <li><Link to="/register" className="text-gray-300 hover:text-medishare-orange transition duration-300">Register</Link></li>
+              <li><Link to="/sign-in" className="text-gray-300 hover:text-medishare-orange transition duration-300">Sign In</Link></li>
             </ul>
           </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Trusted By</h3>
+          {/* Trusted By column */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-bold mb-4">Trusted By</h3>
             <ul className="space-y-2">
-              <li className="text-gray-300">Kerala Foundation</li>
-              <li className="text-gray-300">Uday Foundation</li>
-              <li className="text-gray-300">ABC Pharma</li>
-              <li className="text-gray-300">GHI Healthcare</li>
-              <li className="text-gray-300">XYZ Medical</li>
+              <li className="text-gray-300">Ministry of Health</li>
+              <li className="text-gray-300">State Medical Councils</li>
+              <li className="text-gray-300">Leading Hospital Chains</li>
+              <li className="text-gray-300">National NGO Networks</li>
             </ul>
           </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+          {/* Contact column */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-bold mb-4">Contact</h3>
             <ul className="space-y-3">
               <li className="flex items-start">
-                <Mail size={18} className="mr-2 mt-1 text-medishare-gold" />
-                <span>info@medishare.org</span>
+                <MapPin className="h-5 w-5 text-medishare-orange mr-2 mt-0.5" />
+                <span className="text-gray-300">123 MediShare Tower, Healthcare District, Mumbai, India</span>
               </li>
-              <li className="flex items-start">
-                <Phone size={18} className="mr-2 mt-1 text-medishare-gold" />
-                <span>+1 (555) 123-4567</span>
+              <li className="flex items-center">
+                <Phone className="h-5 w-5 text-medishare-orange mr-2" />
+                <span className="text-gray-300">+91 1234567890</span>
               </li>
-              <li className="flex items-start">
-                <MapPin size={18} className="mr-2 mt-1 text-medishare-gold" />
-                <span>123 Healthcare Ave, Medical District, CA 90210</span>
+              <li className="flex items-center">
+                <Mail className="h-5 w-5 text-medishare-orange mr-2" />
+                <span className="text-gray-300">info@medishare.org</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-700 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-gray-400 mb-4 md:mb-0">
+        <hr className="border-gray-700 my-8" />
+
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <p className="text-gray-400 text-sm">
             © {new Date().getFullYear()} MediShare. All rights reserved.
           </p>
-          <div className="flex space-x-4 text-sm text-gray-400">
-            <FooterLink href="/privacy" label="Privacy Policy" />
-            <FooterLink href="/terms" label="Terms of Service" />
-            <FooterLink href="/faq" label="FAQ" />
+          <div className="flex space-x-4 mt-4 md:mt-0">
+            <a href="#" className="text-gray-400 hover:text-white transition duration-300">
+              <Facebook className="h-5 w-5" />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition duration-300">
+              <Twitter className="h-5 w-5" />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition duration-300">
+              <Instagram className="h-5 w-5" />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition duration-300">
+              <Linkedin className="h-5 w-5" />
+            </a>
           </div>
         </div>
       </div>
     </footer>
   );
 };
-
-const SocialIcon = ({ icon, href }: { icon: React.ReactNode; href: string }) => (
-  <a
-    href={href}
-    className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-medishare-gold hover:text-medishare-dark transition-colors duration-300"
-  >
-    {icon}
-  </a>
-);
-
-const FooterLink = ({ href, label }: { href: string; label: string }) => (
-  <li>
-    <Link to={href} className="hover:text-medishare-gold transition-colors duration-300">
-      {label}
-    </Link>
-  </li>
-);
 
 export default Footer;

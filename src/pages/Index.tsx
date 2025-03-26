@@ -1,5 +1,6 @@
 
 import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Stats from "../components/Stats";
@@ -35,16 +36,16 @@ const AboutPreview = () => {
             Every year, ₹15,000-₹18,000 crore worth of medicines go to waste in India, 
             while millions struggle to access essential healthcare.
           </p>
-          <p className="text-lg text-gray-600 mb-12">
+          <p className="text-lg text-gray-600 mb-14">
             Our AI-powered platform enables efficient redistribution, optimizing the match 
             between surplus medicines and demand across multiple states.
           </p>
-          <a 
-            href="/about" 
+          <Link
+            to="/register" 
             className="inline-block bg-medishare-orange hover:bg-medishare-gold text-white font-medium px-6 py-3 rounded-md transition-colors duration-300"
           >
-            Learn More About Our Mission
-          </a>
+            Register Now
+          </Link>
         </div>
       </div>
     </section>

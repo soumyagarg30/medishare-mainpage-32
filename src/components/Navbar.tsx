@@ -49,7 +49,6 @@ const Navbar = () => {
             <NavLink href="/sign-in" label="Recipients" isScrolled={isScrolled} />
             <NavLink href="/ngos" label="NGOs" isScrolled={isScrolled} />
             <NavLink href="/donors" label="Donors" isScrolled={isScrolled} />
-            <NavLink href="/contact" label="Contact Us" isScrolled={isScrolled} />
             
             <Link to="/sign-in">
               <Button 
@@ -84,7 +83,6 @@ const Navbar = () => {
               <MobileNavLink href="/sign-in" label="Recipients" onClick={toggleMenu} />
               <MobileNavLink href="/ngos" label="NGOs" onClick={toggleMenu} />
               <MobileNavLink href="/donors" label="Donors" onClick={toggleMenu} />
-              <MobileNavLink href="/contact" label="Contact Us" onClick={toggleMenu} />
               <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />
             </div>
           </div>

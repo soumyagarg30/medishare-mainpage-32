@@ -1,7 +1,7 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import LocationPermission from "@/components/LocationPermission";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,17 @@ import {
   MapPin,
   Upload,
   Calendar,
-  FileText
+  FileText,
+  Lock,
+  Phone
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Sample donation data
 const donationHistory = [
@@ -75,6 +84,10 @@ const donationFormSchema = z.object({
 const DonorDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [imagePreview, setImagePreview] = useState(null);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [verificationType, setVerificationType] = useState("phone");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [pendingChanges, setPendingChanges] = useState({});
 
   // Initialize form
   const form = useForm({
@@ -100,6 +113,29 @@ const DonorDashboard = () => {
     }
   };
 
+  const handleSaveProfile = (data) => {
+    setShowVerificationDialog(true);
+    setPendingChanges(data);
+  };
+
+  const handleVerificationSubmit = () => {
+    if (verificationCode === "123456" || verificationCode === "password") {
+      console.log("Applying changes:", pendingChanges);
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully.",
+      });
+      setShowVerificationDialog(false);
+      setVerificationCode("");
+    } else {
+      toast({
+        title: "Verification failed",
+        description: "The verification code or password you entered is incorrect.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const onSubmit = (data) => {
     console.log("Donation submitted:", data);
     toast({
@@ -113,6 +149,7 @@ const DonorDashboard = () => {
   return (
     <>
       <Navbar />
+      <LocationPermission />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
           <h1 className="text-3xl font-bold text-medishare-dark mb-6">Donor Dashboard</h1>
@@ -178,7 +215,7 @@ const DonorDashboard = () => {
                     <CardDescription>Update your personal information</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSaveProfile({ name: e.target.name.value, email: e.target.email.value, phone: e.target.phone.value, address: e.target.address.value }); }}>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label htmlFor="name" className="text-sm font-medium">Full Name</label>
@@ -194,7 +231,11 @@ const DonorDashboard = () => {
                         </div>
                         <div className="space-y-2">
                           <label htmlFor="gst" className="text-sm font-medium">GST Number</label>
-                          <Input id="gst" placeholder="22AAAAA0000A1Z5" defaultValue="22AAAAA0000A1Z5" readOnly />
+                          <div className="relative">
+                            <Input id="gst" placeholder="22AAAAA0000A1Z5" defaultValue="22AAAAA0000A1Z5" readOnly className="pr-10 bg-gray-100" />
+                            <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                          </div>
+                          <p className="text-xs text-gray-500">GST Number cannot be modified</p>
                         </div>
                       </div>
                       
@@ -203,7 +244,7 @@ const DonorDashboard = () => {
                         <Textarea id="address" placeholder="123 Main St, City, State" defaultValue="123 Main St, Mumbai, Maharashtra" />
                       </div>
                       
-                      <Button type="button" className="bg-medishare-blue hover:bg-medishare-blue/90">
+                      <Button type="submit" className="bg-medishare-blue hover:bg-medishare-blue/90">
                         Save Changes
                       </Button>
                     </form>
@@ -546,6 +587,67 @@ const DonorDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Verification Dialog */}
+      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Verify Your Identity</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <Button 
+                variant={verificationType === "phone" ? "default" : "outline"}
+                className={verificationType === "phone" ? "bg-medishare-blue hover:bg-medishare-blue/90" : ""}
+                onClick={() => setVerificationType("phone")}
+              >
+                <Phone className="mr-2 h-4 w-4" />
+                OTP Verification
+              </Button>
+              <Button 
+                variant={verificationType === "password" ? "default" : "outline"}
+                className={verificationType === "password" ? "bg-medishare-blue hover:bg-medishare-blue/90" : ""}
+                onClick={() => setVerificationType("password")}
+              >
+                <Lock className="mr-2 h-4 w-4" />
+                Password
+              </Button>
+            </div>
+            
+            {verificationType === "phone" ? (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">We've sent a 6-digit code to your registered phone number.</p>
+                <Input 
+                  placeholder="Enter 6-digit code" 
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                />
+                <p className="text-xs text-gray-400">(For demo, use code: 123456)</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">Enter your password to confirm changes.</p>
+                <Input 
+                  type="password" 
+                  placeholder="Enter your password" 
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                />
+                <p className="text-xs text-gray-400">(For demo, use: password)</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVerificationDialog(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-medishare-blue hover:bg-medishare-blue/90" onClick={handleVerificationSubmit}>
+              Verify & Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <Footer />
     </>
   );

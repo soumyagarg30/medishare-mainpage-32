@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -21,7 +20,6 @@ import {
   Users
 } from "lucide-react";
 
-// Sample available medicines data
 const availableMedicines = [
   {
     id: "MED001",
@@ -49,7 +47,6 @@ const availableMedicines = [
   }
 ];
 
-// Sample inventory data
 const inventoryItems = [
   {
     id: "INV001",
@@ -80,7 +77,6 @@ const inventoryItems = [
   }
 ];
 
-// Sample distribution data
 const distributionHistory = [
   {
     id: "DIST001",
@@ -108,7 +104,6 @@ const distributionHistory = [
   }
 ];
 
-// Sample impact data
 const impactData = {
   totalMedicinesReceived: 1250,
   totalMedicinesDistributed: 850,
@@ -136,12 +131,12 @@ const NGODashboard = () => {
   return (
     <>
       <Navbar />
+      <LocationPermission />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
           <h1 className="text-3xl font-bold text-medishare-dark mb-6">NGO Dashboard</h1>
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            {/* Sidebar */}
             <div className="md:col-span-3">
               <Card>
                 <CardContent className="p-0">
@@ -192,8 +187,8 @@ const NGODashboard = () => {
                       onClick={() => setActiveTab("donors")} 
                       className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "donors" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
                     >
-                      <Users size={18} />
-                      <span>Donor Interaction</span>
+                      <MapPin size={18} />
+                      <span>Donors Near Me</span>
                     </button>
                     <button 
                       onClick={() => setActiveTab("notifications")} 
@@ -207,7 +202,6 @@ const NGODashboard = () => {
               </Card>
             </div>
             
-            {/* Main Content */}
             <div className="md:col-span-9">
               {activeTab === "profile" && (
                 <Card>
@@ -595,7 +589,6 @@ const NGODashboard = () => {
                       </Card>
                     </div>
                     
-                    {/* Placeholder for charts */}
                     <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
                       <p className="text-gray-500">Distribution Trends Chart (Will be implemented with Recharts)</p>
                     </div>
@@ -606,65 +599,65 @@ const NGODashboard = () => {
               {activeTab === "donors" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Donor Interaction</CardTitle>
-                    <CardDescription>View and communicate with donors</CardDescription>
+                    <CardTitle>Donors Near Me</CardTitle>
+                    <CardDescription>Find donors in your area that have medicines available</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="flex justify-between">
-                          <div>
-                            <h3 className="font-medium text-lg">John Doe Pharmaceuticals</h3>
-                            <p className="text-sm text-gray-600">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              Mumbai, Maharashtra
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                              Donated: Paracetamol, Antibiotics, Vitamins
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <Button className="h-9 bg-medishare-blue hover:bg-medishare-blue/90">
+                      <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4">
+                        <p className="text-gray-500">Map View (Will be implemented with a mapping library)</p>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                          <div className="flex justify-between">
+                            <div>
+                              <h3 className="font-medium text-lg">John Doe Pharmaceuticals</h3>
+                              <p className="text-sm text-gray-600">
+                                <MapPin className="h-4 w-4 inline mr-1" />
+                                2.3 km away - Bandra, Mumbai
+                              </p>
+                              <p className="text-sm text-gray-600 mt-2">
+                                Available Medicines: Antibiotics, Painkillers, Insulin
+                              </p>
+                            </div>
+                            <Button className="h-9 bg-medishare-orange hover:bg-medishare-gold">
                               Contact
                             </Button>
                           </div>
                         </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="flex justify-between">
-                          <div>
-                            <h3 className="font-medium text-lg">MediCare Hospital</h3>
-                            <p className="text-sm text-gray-600">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              Pune, Maharashtra
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                              Donated: Insulin, Antibiotics
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <Button className="h-9 bg-medishare-blue hover:bg-medishare-blue/90">
+                        
+                        <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                          <div className="flex justify-between">
+                            <div>
+                              <h3 className="font-medium text-lg">MediCare Hospital</h3>
+                              <p className="text-sm text-gray-600">
+                                <MapPin className="h-4 w-4 inline mr-1" />
+                                4.1 km away - Andheri, Mumbai
+                              </p>
+                              <p className="text-sm text-gray-600 mt-2">
+                                Available Medicines: Asthma Inhalers, Diabetes Medication
+                              </p>
+                            </div>
+                            <Button className="h-9 bg-medishare-orange hover:bg-medishare-gold">
                               Contact
                             </Button>
                           </div>
                         </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="flex justify-between">
-                          <div>
-                            <h3 className="font-medium text-lg">HealthPlus Clinic</h3>
-                            <p className="text-sm text-gray-600">
-                              <MapPin className="h-4 w-4 inline mr-1" />
-                              Mumbai, Maharashtra
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                              Donated: Vitamin C, Antibiotic Ointment
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <Button className="h-9 bg-medishare-blue hover:bg-medishare-blue/90">
+                        
+                        <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                          <div className="flex justify-between">
+                            <div>
+                              <h3 className="font-medium text-lg">HealthPlus Clinic</h3>
+                              <p className="text-sm text-gray-600">
+                                <MapPin className="h-4 w-4 inline mr-1" />
+                                3.8 km away - Juhu, Mumbai
+                              </p>
+                              <p className="text-sm text-gray-600 mt-2">
+                                Available Medicines: Vitamin C, Antibiotic Ointment
+                              </p>
+                            </div>
+                            <Button className="h-9 bg-medishare-orange hover:bg-medishare-gold">
                               Contact
                             </Button>
                           </div>
