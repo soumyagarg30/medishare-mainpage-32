@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,7 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Mic, MicOff, Send, X, MessageSquare, Volume2, VolumeX } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define the ChatMessage type
 interface ChatMessage {
@@ -26,7 +25,7 @@ const Chatbot = () => {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   // Initialize speech recognition
   useEffect(() => {
