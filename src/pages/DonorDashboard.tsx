@@ -113,9 +113,9 @@ const DonorDashboard = () => {
     }
   };
 
-  const handleSaveProfile = (data) => {
+  const handleSaveProfile = (formData) => {
     setShowVerificationDialog(true);
-    setPendingChanges(data);
+    setPendingChanges(formData);
   };
 
   const handleVerificationSubmit = () => {
@@ -206,7 +206,6 @@ const DonorDashboard = () => {
               </Card>
             </div>
             
-            {/* Main Content */}
             <div className="md:col-span-9">
               {activeTab === "profile" && (
                 <Card>
@@ -215,7 +214,21 @@ const DonorDashboard = () => {
                     <CardDescription>Update your personal information</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSaveProfile({ name: e.target.name.value, email: e.target.email.value, phone: e.target.phone.value, address: e.target.address.value }); }}>
+                    <form className="space-y-4" onSubmit={(e) => { 
+                      e.preventDefault(); 
+                      const formElement = e.target as HTMLFormElement;
+                      const nameInput = formElement.querySelector('#name') as HTMLInputElement;
+                      const emailInput = formElement.querySelector('#email') as HTMLInputElement;
+                      const phoneInput = formElement.querySelector('#phone') as HTMLInputElement;
+                      const addressInput = formElement.querySelector('#address') as HTMLTextAreaElement;
+                      
+                      handleSaveProfile({ 
+                        name: nameInput.value, 
+                        email: emailInput.value, 
+                        phone: phoneInput.value, 
+                        address: addressInput.value 
+                      }); 
+                    }}>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label htmlFor="name" className="text-sm font-medium">Full Name</label>
@@ -431,7 +444,6 @@ const DonorDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                      {/* Impact Stats */}
                       <Card>
                         <CardContent className="pt-6">
                           <div className="text-center">
@@ -469,7 +481,6 @@ const DonorDashboard = () => {
                       </Card>
                     </div>
                     
-                    {/* Placeholder for charts */}
                     <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
                       <p className="text-gray-500">Donation Trends Chart (Will be implemented with Recharts)</p>
                     </div>
@@ -536,12 +547,10 @@ const DonorDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {/* Map placeholder */}
                       <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4">
                         <p className="text-gray-500">Map View (Will be implemented with a mapping library)</p>
                       </div>
                       
-                      {/* NGO List */}
                       <div className="space-y-4">
                         <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                           <div className="flex justify-between">
@@ -588,7 +597,6 @@ const DonorDashboard = () => {
         </div>
       </div>
 
-      {/* Verification Dialog */}
       <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
