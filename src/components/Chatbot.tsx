@@ -3,8 +3,15 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { MessageCircle, Mic, MicOff, Send, Speaker, Volume2, VolumeX } from "lucide-react";
+import { MessageCircle, Mic, MicOff, Send, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+
+// Type for our SpeechRecognition instance
+type SpeechRecognitionInstance = typeof window.SpeechRecognition extends undefined
+  ? typeof window.webkitSpeechRecognition extends undefined
+    ? null
+    : InstanceType<typeof window.webkitSpeechRecognition>
+  : InstanceType<typeof window.SpeechRecognition>;
 
 const Chatbot = () => {
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
@@ -17,10 +24,19 @@ const Chatbot = () => {
   const { toast } = useToast();
   
   // Initialize speech recognition when available
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+  let recognition: SpeechRecognitionInstance | null = null;
   
-  if (recognition) {
+  if (typeof window !== 'undefined') {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+    }
+  }
+  
+  // Configure speech recognition if available
+  useEffect(() => {
+    if (!recognition) return;
+    
     recognition.continuous = false;
     recognition.lang = 'en-US'; // Default language
     recognition.interimResults = false;
@@ -40,7 +56,14 @@ const Chatbot = () => {
         variant: "destructive",
       });
     };
-  }
+    
+    return () => {
+      // Cleanup if needed
+      if (isListening && recognition) {
+        recognition.stop();
+      }
+    };
+  }, [recognition, toast]);
   
   // Text-to-speech functionality
   const speak = (text: string) => {
