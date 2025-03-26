@@ -29,12 +29,14 @@ const Recipients = () => {
                   <Building2 className="h-16 w-16 text-medishare-blue" />
                 </div>
                 <div>
-                  <p className="text-lg leading-relaxed text-gray-700">
+                  <p className="text-lg leading-relaxed text-gray-700 mb-5">
                     Recipients are small healthcare centers, mohalla clinics, and other community-based medical facilities 
                     that serve underprivileged populations. They receive medicines from NGOs to support their patients, 
                     ensuring that essential healthcare services remain accessible to those who might otherwise struggle to 
-                    afford medications. By participating in this network, recipients can enhance their capacity to provide 
-                    quality healthcare to local communities.
+                    afford medications.
+                  </p>
+                  <p className="text-lg leading-relaxed text-gray-700">
+                    By participating in this network, recipients can enhance their capacity to provide quality healthcare to local communities.
                   </p>
                 </div>
               </div>
