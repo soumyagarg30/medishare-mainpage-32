@@ -1,10 +1,10 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Mic, MicOff, Send, X, MessageSquare, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, Send, X, MessageSquare, Volume2, VolumeX, Globe } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -13,6 +13,22 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+// Supported languages with their codes
+const LANGUAGES = {
+  "English": "en-US",
+  "Hindi": "hi-IN",
+  "Spanish": "es-ES", 
+  "French": "fr-FR",
+  "German": "de-DE",
+  "Chinese": "zh-CN",
+  "Japanese": "ja-JP",
+  "Arabic": "ar-SA",
+  "Bengali": "bn-IN",
+  "Tamil": "ta-IN"
+};
+
+type LanguageCode = keyof typeof LANGUAGES;
 
 const Chatbot = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -23,12 +39,45 @@ const Chatbot = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [currentLanguage, setCurrentLanguage] = useState<string>("English");
+  const [languageCode, setLanguageCode] = useState<string>("en-US");
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isMobile = useIsMobile();
 
-  // Initialize speech recognition
+  // Initialize speech recognition when language changes
   useEffect(() => {
+    initializeSpeechRecognition();
+    
+    // Update welcome message based on language
+    if (messages.length === 1 && messages[0].role === "assistant") {
+      const welcomeMessages: Record<string, string> = {
+        "English": "Hello! I'm your AI assistant. How can I help you today?",
+        "Hindi": "नमस्ते! मैं आपका AI सहायक हूं। आज मैं आपकी कैसे मदद कर सकता हूं?",
+        "Spanish": "¡Hola! Soy tu asistente de IA. ¿Cómo puedo ayudarte hoy?",
+        "French": "Bonjour! Je suis votre assistant IA. Comment puis-je vous aider aujourd'hui?",
+        "German": "Hallo! Ich bin Ihr KI-Assistent. Wie kann ich Ihnen heute helfen?",
+        "Chinese": "你好！我是你的 AI 助手。今天我能帮你什么忙？",
+        "Japanese": "こんにちは！私はあなたのAIアシスタントです。今日はどのようにお手伝いできますか？",
+        "Arabic": "مرحبًا! أنا مساعدك الذكاء الاصطناعي. كيف يمكنني مساعدتك اليوم؟",
+        "Bengali": "হ্যালো! আমি আপনার AI সহকারী। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
+        "Tamil": "வணக்கம்! நான் உங்கள் AI உதவியாளர். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?"
+      };
+      
+      setMessages([
+        { role: "assistant", content: welcomeMessages[currentLanguage] || welcomeMessages["English"] }
+      ]);
+    }
+  }, [currentLanguage, languageCode]);
+
+  const initializeSpeechRecognition = () => {
+    // Stop any existing recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+      recognitionRef.current = null;
+    }
+    
     // Feature detection for Speech Recognition API
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
@@ -38,7 +87,7 @@ const Chatbot = () => {
       
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognition.lang = languageCode;
       
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
@@ -51,8 +100,8 @@ const Chatbot = () => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
         toast({
-          title: "Voice recognition error",
-          description: "Failed to recognize your voice. Please try again or use text input.",
+          title: getLocalizedText("Voice recognition error"),
+          description: getLocalizedText("Failed to recognize your voice. Please try again or use text input."),
           variant: "destructive",
         });
       };
@@ -62,29 +111,58 @@ const Chatbot = () => {
       };
     } else {
       toast({
-        title: "Voice feature unavailable",
-        description: "Your browser doesn't support voice recognition. Please use text input instead.",
+        title: getLocalizedText("Voice feature unavailable"),
+        description: getLocalizedText("Your browser doesn't support voice recognition. Please use text input instead."),
         variant: "destructive",
       });
     }
-    
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
+  };
+
+  // Function to get localized text
+  const getLocalizedText = (text: string): string => {
+    // This is a simple implementation. In a production app, use a proper i18n library
+    const localizations: Record<string, Record<string, string>> = {
+      "Hindi": {
+        "Voice recognition error": "आवाज पहचान त्रुटि",
+        "Failed to recognize your voice. Please try again or use text input.": "आपकी आवाज को पहचानने में विफल रहा। कृपया पुनः प्रयास करें या टेक्स्ट इनपुट का उपयोग करें।",
+        "Voice feature unavailable": "वॉयस फीचर अनुपलब्ध",
+        "Your browser doesn't support voice recognition. Please use text input instead.": "आपका ब्राउज़र वॉयस पहचान का समर्थन नहीं करता है। कृपया टेक्स्ट इनपुट का उपयोग करें।",
+        "AI Assistant": "AI सहायक",
+        "Type your message...": "अपना संदेश लिखें...",
+        "Clear chat": "चैट साफ करें",
+        "Enable voice": "वॉयस सक्षम करें",
+        "Disable voice": "वॉयस अक्षम करें",
+        "Start listening": "सुनना शुरू करें",
+        "Stop listening": "सुनना बंद करें",
+        "Send message": "संदेश भेजें",
+        "Speech synthesis error": "वाक् संश्लेषण त्रुटि",
+        "Failed to convert text to speech.": "टेक्स्ट को स्पीच में बदलने में विफल।",
+        "Text-to-speech unavailable": "टेक्स्ट-टू-स्पीच अनुपलब्ध",
+        "Your browser doesn't support text-to-speech.": "आपका ब्राउज़र टेक्स्ट-टू-स्पीच का समर्थन नहीं करता है।",
+        "Change Language": "भाषा बदलें"
+      },
+      // Add more languages as needed
     };
-  }, []);
+    
+    return localizations[currentLanguage]?.[text] || text;
+  };
   
   // Auto-scroll to the bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const changeLanguage = (language: string) => {
+    setCurrentLanguage(language);
+    setLanguageCode(LANGUAGES[language as keyof typeof LANGUAGES]);
+    setShowLanguageMenu(false);
+  };
+
   const toggleListening = () => {
     if (!recognitionRef.current) {
       toast({
-        title: "Voice feature unavailable",
-        description: "Your browser doesn't support voice recognition.",
+        title: getLocalizedText("Voice feature unavailable"),
+        description: getLocalizedText("Your browser doesn't support voice recognition."),
         variant: "destructive",
       });
       return;
@@ -100,8 +178,8 @@ const Chatbot = () => {
       } catch (error) {
         console.error("Failed to start speech recognition:", error);
         toast({
-          title: "Voice recognition error",
-          description: "Failed to start voice recognition. Please try again.",
+          title: getLocalizedText("Voice recognition error"),
+          description: getLocalizedText("Failed to start voice recognition. Please try again."),
           variant: "destructive",
         });
       }
@@ -120,12 +198,17 @@ const Chatbot = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     
-    // Simulate AI response (replace with actual API call in production)
+    // In a real implementation, you would send this query to your backend/API
+    // For demonstration, we'll simulate a structured response
     setTimeout(() => {
+      // Generate a structured response based on the query
+      const responseContent = generateStructuredResponse(text);
+      
       const aiResponse = { 
         role: "assistant" as const, 
-        content: `I received your message: "${text}". This is a simulated response. In a production environment, this would come from an AI model.` 
+        content: responseContent
       };
+      
       setMessages((prev) => [...prev, aiResponse]);
       
       // Convert AI response to speech if voice is enabled
@@ -135,14 +218,39 @@ const Chatbot = () => {
     }, 1000);
   };
 
+  // Generate structured responses based on user query
+  const generateStructuredResponse = (query: string): string => {
+    const lowerQuery = query.toLowerCase();
+    
+    // This is a simplified example. In a production app, use a real AI model or API
+    if (lowerQuery.includes("medicine") || lowerQuery.includes("medication")) {
+      return `### Medicine Information\n\n1. **Donation Process**:\n   - Medicines must be unexpired\n   - Original packaging required\n   - Minimum 3 months before expiry\n\n2. **How to Donate**:\n   - Use our donor portal\n   - Schedule a pickup\n   - Drop at collection centers`;
+    } 
+    else if (lowerQuery.includes("ngo") || lowerQuery.includes("organization")) {
+      return `### NGO Partnerships\n\n1. **Benefits**:\n   - Access to medicine inventory\n   - Distribution infrastructure\n   - Analytics dashboard\n\n2. **Requirements**:\n   - Registered NGO status\n   - Healthcare focus\n   - Operational for at least 1 year`;
+    }
+    else if (lowerQuery.includes("donate") || lowerQuery.includes("donation")) {
+      return `### Donation Information\n\n1. **What You Can Donate**:\n   - Unopened medications\n   - Medical equipment\n   - Healthcare supplies\n\n2. **Process**:\n   - Register as donor\n   - List available items\n   - Arrange delivery/pickup`;
+    }
+    else if (lowerQuery.includes("recipient") || lowerQuery.includes("receive")) {
+      return `### Recipient Information\n\n1. **Eligibility**:\n   - Verified individuals\n   - Healthcare facilities\n   - Registered NGOs\n\n2. **Process**:\n   - Submit application\n   - Provide documentation\n   - Receive approval`;
+    }
+    else {
+      return `I'll be happy to help with your query about "${query}". Here's what you might want to know:\n\n1. **MediShare Platform**:\n   - Connects medicine donors with recipients\n   - Ensures safe and compliant transfers\n   - Tracks impact and distribution\n\n2. **How to Get Started**:\n   - Register on our platform\n   - Complete verification\n   - Start donating or requesting medicines`;
+    }
+  };
+
   const speakText = (text: string) => {
     if (!voiceEnabled) return;
+    
+    // Remove markdown formatting for speech
+    const cleanText = text.replace(/#{1,6} /g, '').replace(/\*\*/g, '').replace(/\n/g, '. ');
     
     // Use browser's built-in speech synthesis
     if ('speechSynthesis' in window) {
       setIsSpeaking(true);
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = languageCode;
       
       utterance.onend = () => {
         setIsSpeaking(false);
@@ -151,8 +259,8 @@ const Chatbot = () => {
       utterance.onerror = () => {
         setIsSpeaking(false);
         toast({
-          title: "Speech synthesis error",
-          description: "Failed to convert text to speech.",
+          title: getLocalizedText("Speech synthesis error"),
+          description: getLocalizedText("Failed to convert text to speech."),
           variant: "destructive",
         });
       };
@@ -162,8 +270,8 @@ const Chatbot = () => {
       window.speechSynthesis.speak(utterance);
     } else {
       toast({
-        title: "Text-to-speech unavailable",
-        description: "Your browser doesn't support text-to-speech.",
+        title: getLocalizedText("Text-to-speech unavailable"),
+        description: getLocalizedText("Your browser doesn't support text-to-speech."),
         variant: "destructive",
       });
     }
@@ -187,7 +295,7 @@ const Chatbot = () => {
   const clearChat = () => {
     stopSpeaking();
     setMessages([
-      { role: "assistant", content: "Hello! I'm your AI assistant. How can I help you today?" }
+      { role: "assistant", content: getLocalizedText("Hello! I'm your AI assistant. How can I help you today?") }
     ]);
   };
 
@@ -198,17 +306,68 @@ const Chatbot = () => {
     }
   };
 
+  // Function to format structured responses
+  const formatMessage = (content: string) => {
+    // Simple Markdown-like formatting
+    if (!content.includes('###')) {
+      return <p className="whitespace-pre-wrap">{content}</p>;
+    }
+    
+    // Process structured content with headers and lists
+    const sections = content.split('###').filter(Boolean);
+    
+    return (
+      <div className="space-y-3">
+        {sections.map((section, index) => {
+          const [title, ...contentLines] = section.trim().split('\n').filter(Boolean);
+          const contentText = contentLines.join('\n');
+          
+          return (
+            <div key={index} className="space-y-2">
+              <h3 className="font-bold text-lg">{title}</h3>
+              <div className="whitespace-pre-wrap">{contentText}</div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderChatInterface = () => (
     <div className="flex flex-col h-full">
       {/* Chat header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold">AI Assistant</h2>
+        <h2 className="text-lg font-semibold">{getLocalizedText("AI Assistant")}</h2>
         <div className="flex items-center gap-2">
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setShowLanguageMenu(!showLanguageMenu)} 
+              aria-label={getLocalizedText("Change Language")}
+            >
+              <Globe className="h-5 w-5" />
+            </Button>
+            
+            {showLanguageMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
+                {Object.keys(LANGUAGES).map((lang) => (
+                  <button
+                    key={lang}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => changeLanguage(lang)}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={toggleVoice} 
-            aria-label={voiceEnabled ? "Disable voice" : "Enable voice"}
+            aria-label={voiceEnabled ? getLocalizedText("Disable voice") : getLocalizedText("Enable voice")}
           >
             {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </Button>
@@ -216,7 +375,7 @@ const Chatbot = () => {
             variant="ghost" 
             size="icon" 
             onClick={clearChat} 
-            aria-label="Clear chat"
+            aria-label={getLocalizedText("Clear chat")}
           >
             <X className="h-5 w-5" />
           </Button>
@@ -239,7 +398,7 @@ const Chatbot = () => {
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              {message.content}
+              {message.role === "assistant" ? formatMessage(message.content) : message.content}
             </div>
           </div>
         ))}
@@ -253,7 +412,7 @@ const Chatbot = () => {
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
-            placeholder="Type your message..."
+            placeholder={getLocalizedText("Type your message...")}
             className="resize-none"
             rows={2}
           />
@@ -263,7 +422,7 @@ const Chatbot = () => {
               variant={isListening ? "destructive" : "outline"}
               size="icon"
               className="h-10 w-10"
-              aria-label={isListening ? "Stop listening" : "Start listening"}
+              aria-label={isListening ? getLocalizedText("Stop listening") : getLocalizedText("Start listening")}
             >
               {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
@@ -273,7 +432,7 @@ const Chatbot = () => {
               variant="default"
               size="icon"
               className="bg-medishare-orange hover:bg-medishare-gold h-10 w-10"
-              aria-label="Send message"
+              aria-label={getLocalizedText("Send message")}
             >
               <Send className="h-5 w-5" />
             </Button>
