@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -13,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Building, HeartHandshake, Shield, LockIcon, MailIcon } from "lucide-react";
+import { UserType, isAuthenticated, loginUser } from "@/utils/auth";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -26,7 +27,35 @@ const loginFormSchema = z.object({
 
 const SignIn = () => {
   const navigate = useNavigate();
-  const [userType, setUserType] = useState("donor");
+  const [userType, setUserType] = useState<UserType>("donor");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated()) {
+      // Redirect to appropriate dashboard based on user type
+      const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+      
+      if (user.userType) {
+        switch(user.userType) {
+          case "donor":
+            navigate("/donor-dashboard");
+            break;
+          case "ngo":
+            navigate("/ngo-dashboard");
+            break;
+          case "recipient":
+            navigate("/recipient-dashboard");
+            break;
+          case "admin":
+            navigate("/admin-dashboard");
+            break;
+          default:
+            navigate("/");
+        }
+      }
+    }
+  }, [navigate]);
   
   // Create form with React Hook Form + Zod
   const form = useForm({
@@ -37,33 +66,51 @@ const SignIn = () => {
     },
   });
 
-  const onSubmit = (data) => {
-    console.log("Login data:", data);
-    console.log("User type:", userType);
+  const onSubmit = async (data: z.infer<typeof loginFormSchema>) => {
+    setIsLoading(true);
     
-    // Here you would normally authenticate with your backend
-    // Simulating a successful login
-    toast({
-      title: "Login successful!",
-      description: `Welcome back to MediShare as a ${userType}.`,
-    });
-    
-    // Navigate to appropriate dashboard based on user type
-    switch(userType) {
-      case "donor":
-        navigate("/donor-dashboard");
-        break;
-      case "ngo":
-        navigate("/ngo-dashboard");
-        break;
-      case "recipient":
-        navigate("/recipient-dashboard");
-        break;
-      case "admin":
-        navigate("/admin-dashboard");
-        break;
-      default:
-        navigate("/");
+    try {
+      const result = await loginUser(data.email, data.password, userType);
+      
+      if (result.success) {
+        toast({
+          title: "Login successful!",
+          description: `Welcome back to MediShare as a ${userType}.`,
+        });
+        
+        // Navigate to appropriate dashboard based on user type
+        switch(userType) {
+          case "donor":
+            navigate("/donor-dashboard");
+            break;
+          case "ngo":
+            navigate("/ngo-dashboard");
+            break;
+          case "recipient":
+            navigate("/recipient-dashboard");
+            break;
+          case "admin":
+            navigate("/admin-dashboard");
+            break;
+          default:
+            navigate("/");
+        }
+      } else {
+        toast({
+          title: "Login failed",
+          description: result.message || "An error occurred during login.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -87,7 +134,7 @@ const SignIn = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={userType} onValueChange={setUserType} className="w-full">
+              <Tabs value={userType} onValueChange={(value) => setUserType(value as UserType)} className="w-full">
                 <TabsList className="grid grid-cols-4 mb-8">
                   <TabsTrigger value="donor" className="flex flex-col items-center gap-2 py-3">
                     <UserPlus className="h-5 w-5" />
@@ -123,6 +170,7 @@ const SignIn = () => {
                                 type="email" 
                                 className="pl-10" 
                                 {...field} 
+                                disabled={isLoading}
                               />
                             </div>
                           </FormControl>
@@ -145,6 +193,7 @@ const SignIn = () => {
                                 type="password" 
                                 className="pl-10" 
                                 {...field} 
+                                disabled={isLoading}
                               />
                             </div>
                           </FormControl>
@@ -159,8 +208,12 @@ const SignIn = () => {
                       </Link>
                     </div>
                     
-                    <Button type="submit" className="w-full bg-medishare-orange hover:bg-medishare-gold">
-                      Sign In
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-medishare-orange hover:bg-medishare-gold"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Signing in..." : "Sign In"}
                     </Button>
                   </form>
                 </Form>

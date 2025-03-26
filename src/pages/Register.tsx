@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +12,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, CheckCircle, UserPlus, Building, HeartHandshake, Shield } from "lucide-react";
+import { ArrowRight, CheckCircle, UserPlus, Building, HeartHandshake, Shield, Loader2 } from "lucide-react";
+import { verifyGSTID, verifyUID, verifyDigiLocker, verifyAdminCode } from "@/utils/verificationApis";
+import { registerUser, isAuthenticated, UserType } from "@/utils/auth";
 
 // User type selection step
 const UserTypeSelector = ({ selectedType, onSelectType }) => {
@@ -177,9 +180,39 @@ const adminFormSchema = z.object({
 });
 
 const Register = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [userType, setUserType] = useState(null);
+  const [userType, setUserType] = useState<UserType | null>(null);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated()) {
+      // Redirect to appropriate dashboard based on user type
+      const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+      
+      if (user.userType) {
+        switch(user.userType) {
+          case "donor":
+            navigate("/donor-dashboard");
+            break;
+          case "ngo":
+            navigate("/ngo-dashboard");
+            break;
+          case "recipient":
+            navigate("/recipient-dashboard");
+            break;
+          case "admin":
+            navigate("/admin-dashboard");
+            break;
+          default:
+            navigate("/");
+        }
+      }
+    }
+  }, [navigate]);
 
   // Create forms with React Hook Form + Zod
   const donorForm = useForm({
@@ -250,18 +283,88 @@ const Register = () => {
     }
   };
 
-  const onSubmit = (data) => {
-    console.log("Form data:", data);
-    console.log("User type:", userType);
+  const onSubmit = async (data) => {
+    // Set isVerifying to true
+    setIsVerifying(true);
     
-    // Here you would normally send the data to your backend
-    // Simulating a successful registration
-    toast({
-      title: "Registration successful!",
-      description: "Your account has been created. Verification is in process.",
-    });
-    
-    setRegistrationComplete(true);
+    try {
+      // Verify ID based on user type
+      let verificationResult;
+      let verificationId = "";
+      
+      switch (userType) {
+        case "donor":
+          verificationId = data.gstId;
+          verificationResult = await verifyGSTID(data.gstId);
+          break;
+        case "ngo":
+          verificationId = data.uid;
+          verificationResult = await verifyUID(data.uid);
+          break;
+        case "recipient":
+          verificationId = data.digilocker;
+          verificationResult = await verifyDigiLocker(data.digilocker);
+          break;
+        case "admin":
+          verificationId = data.adminCode;
+          verificationResult = await verifyAdminCode(data.adminCode);
+          break;
+        default:
+          throw new Error("Invalid user type");
+      }
+      
+      setIsVerifying(false);
+      
+      if (!verificationResult.valid) {
+        toast({
+          title: "Verification Failed",
+          description: verificationResult.message || "Could not verify your credentials. Please check and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Proceed with registration if verification successful
+      setIsRegistering(true);
+      
+      const userData = {
+        email: data.email,
+        userType: userType,
+        name: data.fullName || data.organizationName,
+        organization: data.organizationName,
+        phoneNumber: data.phoneNumber,
+        address: data.address,
+        department: data.department,
+      };
+      
+      const registrationResult = await registerUser(userData, data.password, verificationId);
+      
+      setIsRegistering(false);
+      
+      if (registrationResult.success) {
+        toast({
+          title: "Registration successful!",
+          description: "Your account has been created. Verification is in process.",
+        });
+        
+        setRegistrationComplete(true);
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: registrationResult.message || "An error occurred during registration.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      setIsVerifying(false);
+      setIsRegistering(false);
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Get appropriate form based on user type
@@ -273,7 +376,7 @@ const Register = () => {
           schema: donorFormSchema,
           onSubmit: donorForm.handleSubmit(onSubmit),
           render: () => (
-            <DonorRegistrationForm form={donorForm} />
+            <DonorRegistrationForm form={donorForm} isVerifying={isVerifying} isRegistering={isRegistering} />
           ),
         };
       case "ngo":
@@ -282,7 +385,7 @@ const Register = () => {
           schema: ngoFormSchema,
           onSubmit: ngoForm.handleSubmit(onSubmit),
           render: () => (
-            <NGORegistrationForm form={ngoForm} />
+            <NGORegistrationForm form={ngoForm} isVerifying={isVerifying} isRegistering={isRegistering} />
           ),
         };
       case "recipient":
@@ -291,7 +394,7 @@ const Register = () => {
           schema: recipientFormSchema,
           onSubmit: recipientForm.handleSubmit(onSubmit),
           render: () => (
-            <RecipientRegistrationForm form={recipientForm} />
+            <RecipientRegistrationForm form={recipientForm} isVerifying={isVerifying} isRegistering={isRegistering} />
           ),
         };
       case "admin":
@@ -300,7 +403,7 @@ const Register = () => {
           schema: adminFormSchema,
           onSubmit: adminForm.handleSubmit(onSubmit),
           render: () => (
-            <AdminRegistrationForm form={adminForm} />
+            <AdminRegistrationForm form={adminForm} isVerifying={isVerifying} isRegistering={isRegistering} />
           ),
         };
       default:
@@ -340,6 +443,7 @@ const Register = () => {
                     <Button
                       variant="outline"
                       onClick={previousStep}
+                      disabled={isVerifying || isRegistering}
                     >
                       Back
                     </Button>
@@ -359,9 +463,24 @@ const Register = () => {
                       className="ml-auto"
                       type="submit"
                       onClick={getActiveForm()?.onSubmit}
+                      disabled={isVerifying || isRegistering}
                     >
-                      Register
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      {isVerifying ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : isRegistering ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Registering...
+                        </>
+                      ) : (
+                        <>
+                          Register
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
                     </Button>
                   )}
                 </div>
@@ -384,7 +503,7 @@ const Register = () => {
   );
 };
 
-// Success message component - this is where the error was
+// Success message component
 const RegistrationSuccess = ({ userType }) => {
   const messages = {
     donor: "We're verifying your GST ID. You'll receive an email when your account is verified.",
@@ -412,7 +531,7 @@ const RegistrationSuccess = ({ userType }) => {
 };
 
 // Donor Registration Form
-const DonorRegistrationForm = ({ form }) => {
+const DonorRegistrationForm = ({ form, isVerifying, isRegistering }) => {
   return (
     <Form {...form}>
       <h2 className="text-2xl font-semibold text-medishare-dark mb-6">Donor Registration</h2>
@@ -424,7 +543,7 @@ const DonorRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Organization Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your organization name" {...field} />
+                <Input placeholder="Enter your organization name" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -438,7 +557,7 @@ const DonorRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" type="email" {...field} />
+                <Input placeholder="Enter your email" type="email" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -452,7 +571,7 @@ const DonorRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input placeholder="Create a password" type="password" {...field} />
+                <Input placeholder="Create a password" type="password" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -466,9 +585,10 @@ const DonorRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>GST ID</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your 15-digit GST ID" {...field} />
+                <Input placeholder="Enter your 15-digit GST ID" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
+              <p className="text-xs text-gray-500 mt-1">For testing, use IDs starting with 27, 07, or 33</p>
             </FormItem>
           )}
         />
@@ -480,7 +600,7 @@ const DonorRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Phone Number</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your phone number" {...field} />
+                <Input placeholder="Enter your phone number" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -494,7 +614,7 @@ const DonorRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your address" {...field} />
+                <Input placeholder="Enter your address" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -512,6 +632,7 @@ const DonorRegistrationForm = ({ form }) => {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isVerifying || isRegistering}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -529,7 +650,7 @@ const DonorRegistrationForm = ({ form }) => {
 };
 
 // NGO Registration Form
-const NGORegistrationForm = ({ form }) => {
+const NGORegistrationForm = ({ form, isVerifying, isRegistering }) => {
   return (
     <Form {...form}>
       <h2 className="text-2xl font-semibold text-medishare-dark mb-6">NGO Registration</h2>
@@ -541,7 +662,7 @@ const NGORegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Organization Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your NGO name" {...field} />
+                <Input placeholder="Enter your NGO name" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -555,7 +676,7 @@ const NGORegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" type="email" {...field} />
+                <Input placeholder="Enter your email" type="email" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -569,7 +690,7 @@ const NGORegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input placeholder="Create a password" type="password" {...field} />
+                <Input placeholder="Create a password" type="password" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -583,9 +704,10 @@ const NGORegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>UID / Registration Number</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your NGO UID or registration number" {...field} />
+                <Input placeholder="Enter your NGO UID or registration number" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
+              <p className="text-xs text-gray-500 mt-1">For testing, use IDs containing NGO, REG, or starting with IN</p>
             </FormItem>
           )}
         />
@@ -597,7 +719,7 @@ const NGORegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Phone Number</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your phone number" {...field} />
+                <Input placeholder="Enter your phone number" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -611,7 +733,7 @@ const NGORegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your address" {...field} />
+                <Input placeholder="Enter your address" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -629,6 +751,7 @@ const NGORegistrationForm = ({ form }) => {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isVerifying || isRegistering}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -646,7 +769,7 @@ const NGORegistrationForm = ({ form }) => {
 };
 
 // Recipient Registration Form
-const RecipientRegistrationForm = ({ form }) => {
+const RecipientRegistrationForm = ({ form, isVerifying, isRegistering }) => {
   return (
     <Form {...form}>
       <h2 className="text-2xl font-semibold text-medishare-dark mb-6">Recipient Registration</h2>
@@ -658,7 +781,7 @@ const RecipientRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your full name" {...field} />
+                <Input placeholder="Enter your full name" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -672,7 +795,7 @@ const RecipientRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" type="email" {...field} />
+                <Input placeholder="Enter your email" type="email" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -686,7 +809,7 @@ const RecipientRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input placeholder="Create a password" type="password" {...field} />
+                <Input placeholder="Create a password" type="password" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -700,9 +823,10 @@ const RecipientRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>DigiLocker ID</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your DigiLocker ID" {...field} />
+                <Input placeholder="Enter your DigiLocker ID" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
+              <p className="text-xs text-gray-500 mt-1">For testing, use IDs starting with DL or containing AADHAAR</p>
             </FormItem>
           )}
         />
@@ -714,7 +838,7 @@ const RecipientRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Phone Number</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your phone number" {...field} />
+                <Input placeholder="Enter your phone number" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -728,7 +852,7 @@ const RecipientRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your address" {...field} />
+                <Input placeholder="Enter your address" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -746,6 +870,7 @@ const RecipientRegistrationForm = ({ form }) => {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isVerifying || isRegistering}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -763,7 +888,7 @@ const RecipientRegistrationForm = ({ form }) => {
 };
 
 // Create Admin Registration Form
-const AdminRegistrationForm = ({ form }) => {
+const AdminRegistrationForm = ({ form, isVerifying, isRegistering }) => {
   return (
     <Form {...form}>
       <h2 className="text-2xl font-semibold text-medishare-dark mb-6">Admin Registration</h2>
@@ -775,7 +900,7 @@ const AdminRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your full name" {...field} />
+                <Input placeholder="Enter your full name" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -789,7 +914,7 @@ const AdminRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" type="email" {...field} />
+                <Input placeholder="Enter your email" type="email" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -803,7 +928,7 @@ const AdminRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input placeholder="Create a password" type="password" {...field} />
+                <Input placeholder="Create a password" type="password" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -817,9 +942,10 @@ const AdminRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Admin Verification Code</FormLabel>
               <FormControl>
-                <Input placeholder="Enter admin verification code" {...field} />
+                <Input placeholder="Enter admin verification code" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
+              <p className="text-xs text-gray-500 mt-1">For testing, use ADMIN123456, SUPER987654, or TECH456789</p>
             </FormItem>
           )}
         />
@@ -831,7 +957,7 @@ const AdminRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Phone Number</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your phone number" {...field} />
+                <Input placeholder="Enter your phone number" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -845,7 +971,7 @@ const AdminRegistrationForm = ({ form }) => {
             <FormItem>
               <FormLabel>Department</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your department" {...field} />
+                <Input placeholder="Enter your department" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -863,6 +989,7 @@ const AdminRegistrationForm = ({ form }) => {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isVerifying || isRegistering}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
