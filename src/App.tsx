@@ -17,6 +17,7 @@ import DonorDashboard from "./pages/DonorDashboard";
 import NGODashboard from "./pages/NGODashboard";
 import RecipientDashboard from "./pages/RecipientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Chatbot from "./components/Chatbot";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <Chatbot />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
