@@ -53,17 +53,17 @@ export const detectLanguage = (text: string): string => {
   }
   
   // Spanish detection - expanded vocabulary
-  if (/(?:hola|como estas|que tal|buenos dias|gracias|por favor|ayuda|necesito|quiero|busco|donde|cuando|como|quien|que|por que)/.test(text.toLowerCase())) {
+  if (/\b(hola|como estas|que tal|buenos dias|gracias|por favor|ayuda|necesito|quiero|busco|donde|cuando|como|quien|que|por que)\b/.test(text.toLowerCase())) {
     return "Spanish";
   }
   
   // French detection - expanded vocabulary
-  if (/(?:bonjour|merci|comment allez-vous|s'il vous plait|au revoir|je|tu|nous|vous|ils|elles|le|la|les|un|une|des|quel|quelle|où|quand|pourquoi|comment)/.test(text.toLowerCase())) {
+  if (/\b(bonjour|merci|comment allez-vous|s'il vous plait|au revoir|je|tu|nous|vous|ils|elles|le|la|les|un|une|des|quel|quelle|où|quand|pourquoi|comment)\b/.test(text.toLowerCase())) {
     return "French";
   }
   
   // German detection - expanded vocabulary
-  if (/(?:guten tag|danke|wie geht es ihnen|bitte|auf wiedersehen|ich|du|er|sie|es|wir|ihr|sie|der|die|das|ein|eine|wo|wann|warum|wie|wer|was)/.test(text.toLowerCase())) {
+  if (/\b(guten tag|danke|wie geht es ihnen|bitte|auf wiedersehen|ich|du|er|sie|es|wir|ihr|sie|der|die|das|ein|eine|wo|wann|warum|wie|wer|was)\b/.test(text.toLowerCase())) {
     return "German";
   }
   

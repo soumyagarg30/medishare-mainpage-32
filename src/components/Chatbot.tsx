@@ -74,8 +74,7 @@ const Chatbot = () => {
     
     // Update current language if detection is confident
     if (detectedLanguage !== currentLanguage) {
-      setCurrentLanguage(detectedLanguage);
-      setLanguageCode(LANGUAGES[detectedLanguage as keyof typeof LANGUAGES]);
+      changeLanguage(detectedLanguage);
       lastDetectedLanguage.current = detectedLanguage;
     }
     
