@@ -9,54 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      medicines: {
-        Row: {
-          category: string
-          created_at: string | null
-          description: string | null
-          donor_id: string | null
-          expiry_date: string
-          id: string
-          latitude: number | null
-          location: string | null
-          longitude: number | null
-          name: string
-          quantity: number
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          category: string
-          created_at?: string | null
-          description?: string | null
-          donor_id?: string | null
-          expiry_date: string
-          id?: string
-          latitude?: number | null
-          location?: string | null
-          longitude?: number | null
-          name: string
-          quantity: number
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string
-          created_at?: string | null
-          description?: string | null
-          donor_id?: string | null
-          expiry_date?: string
-          id?: string
-          latitude?: number | null
-          location?: string | null
-          longitude?: number | null
-          name?: string
-          quantity?: number
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       Medishare: {
         Row: {
           created_at: string

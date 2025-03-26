@@ -140,39 +140,6 @@ export const registerUser = async (
       };
     }
     
-    // Verify the ID based on user type before proceeding with registration
-    let verified = false;
-    let verificationResult: any = null;
-    
-    // Import verification functions dynamically to avoid circular dependencies
-    const { verifyGSTID, verifyUID, verifyDigiLocker, verifyAdminCode } = await import('@/utils/verificationApis');
-    
-    switch(userData.userType) {
-      case 'donor':
-        verificationResult = await verifyGSTID(verificationId);
-        verified = verificationResult.valid;
-        break;
-      case 'ngo':
-        verificationResult = await verifyUID(verificationId);
-        verified = verificationResult.valid;
-        break;
-      case 'recipient':
-        verificationResult = await verifyDigiLocker(verificationId);
-        verified = verificationResult.valid;
-        break;
-      case 'admin':
-        verificationResult = await verifyAdminCode(verificationId);
-        verified = verificationResult.valid;
-        break;
-    }
-    
-    if (!verified) {
-      return {
-        success: false,
-        message: verificationResult.message || `Invalid ${userData.userType} verification ID.`
-      };
-    }
-    
     // Register with Supabase
     const { data, error } = await supabase.auth.signUp({
       email: userData.email,
@@ -277,42 +244,3 @@ export const setupAuthListener = (callback: (user: UserData | null) => void) => 
     }
   });
 };
-
-/**
- * Check if email exists in the system
- */
-export const checkEmailExists = async (email: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('email')
-      .eq('email', email)
-      .maybeSingle();
-    
-    if (error) {
-      console.error("Error checking email:", error);
-      return false;
-    }
-    
-    return !!data;
-  } catch (error) {
-    console.error("Error checking email:", error);
-    return false;
-  }
-};
-
-/**
- * Get redirect path based on user type
- */
-export const getRedirectPathForUserType = (userType: UserType | null): string => {
-  if (!userType) return "/";
-  
-  switch(userType) {
-    case "donor": return "/donor-dashboard";
-    case "ngo": return "/ngo-dashboard";
-    case "recipient": return "/recipient-dashboard";
-    case "admin": return "/admin-dashboard";
-    default: return "/";
-  }
-};
-
