@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const TrustedBy = () => {
   return (
@@ -16,7 +17,7 @@ const TrustedBy = () => {
               />
             </div>
             <p className="text-sm text-gray-600 max-w-xs">
-              Recycle. Reuse. Relieve – Giving Medicines a Second Life
+              Connecting surplus medicines with those in need. Join our mission for a healthier, more sustainable world.
             </p>
           </div>
 
@@ -26,29 +27,47 @@ const TrustedBy = () => {
             </h3>
             <ul className="space-y-4 text-medishare-blue">
               <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                Kerala Foundation
+                <a href="https://keralasamajam.org/" target="_blank" rel="noopener noreferrer">
+                  Kerala Foundation
+                </a>
               </li>
               <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                Uday Foundation
+                <a href="https://www.udayfoundation.org/" target="_blank" rel="noopener noreferrer">
+                  Uday Foundation
+                </a>
               </li>
               <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                ABC Pharma
+                <a href="https://www.cipla.com/" target="_blank" rel="noopener noreferrer">
+                  Cipla Pharma
+                </a>
+              </li>
+              <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
+                <a href="https://www.ghihealthcare.com/" target="_blank" rel="noopener noreferrer">
+                  GHI Healthcare
+                </a>
+              </li>
+              <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
+                <a href="https://www.aiimsexams.ac.in/" target="_blank" rel="noopener noreferrer">
+                  AIIMS Medical
+                </a>
               </li>
             </ul>
           </div>
 
           <div className="flex flex-col items-center lg:items-end">
             <h3 className="text-2xl font-display font-bold text-medishare-dark mb-4 text-center lg:text-right">
-              Secure Your Dose
+              Request Medicines
             </h3>
             <p className="text-gray-600 mb-6 text-center lg:text-right">
-              Get started on your journey and book your medicines here
+              Are you a clinic or healthcare center in need of medicines?
             </p>
-            <Button 
-              className="bg-medishare-blue hover:bg-medishare-dark text-white font-medium px-6 py-2 rounded-md transition-all duration-300"
-            >
-              Book Now
-            </Button>
+            <Link to="/recipients">
+              <Button 
+                className="bg-medishare-blue hover:bg-medishare-dark text-white font-medium px-6 py-2 rounded-md transition-all duration-300"
+              >
+                Request Now
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

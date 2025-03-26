@@ -46,7 +46,7 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <NavLink href="/" label="Home" isScrolled={isScrolled} />
-            <NavLink href="/sign-in" label="Recipients" isScrolled={isScrolled} />
+            <NavLink href="/recipients" label="Recipients" isScrolled={isScrolled} />
             <NavLink href="/ngos" label="NGOs" isScrolled={isScrolled} />
             <NavLink href="/donors" label="Donors" isScrolled={isScrolled} />
             
@@ -80,7 +80,7 @@ const Navbar = () => {
           <div className="md:hidden pt-4 pb-3 animate-fade-in-up">
             <div className="flex flex-col space-y-4">
               <MobileNavLink href="/" label="Home" onClick={toggleMenu} />
-              <MobileNavLink href="/sign-in" label="Recipients" onClick={toggleMenu} />
+              <MobileNavLink href="/recipients" label="Recipients" onClick={toggleMenu} />
               <MobileNavLink href="/ngos" label="NGOs" onClick={toggleMenu} />
               <MobileNavLink href="/donors" label="Donors" onClick={toggleMenu} />
               <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />

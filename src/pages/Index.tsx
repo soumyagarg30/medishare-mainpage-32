@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Stats from "../components/Stats";
 import Footer from "../components/Footer";
+import TrustedBy from "../components/TrustedBy";
 
 const Index = () => {
   useEffect(() => {
@@ -19,6 +20,7 @@ const Index = () => {
         <Hero />
         <Stats />
         <AboutPreview />
+        <TrustedBy />
       </main>
       <Footer />
     </div>
@@ -41,10 +43,10 @@ const AboutPreview = () => {
             between surplus medicines and demand across multiple states.
           </p>
           <Link
-            to="/register" 
-            className="inline-block bg-medishare-orange hover:bg-medishare-gold text-white font-medium px-6 py-3 rounded-md transition-colors duration-300"
+            to="/about"
+            className="inline-block bg-medishare-orange hover:bg-medishare-gold text-white font-medium px-8 py-4 rounded-md transition-colors duration-300 text-lg"
           >
-            Register Now
+            Learn More About Our Mission
           </Link>
         </div>
       </div>
