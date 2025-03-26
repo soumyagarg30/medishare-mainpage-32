@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -88,10 +87,14 @@ const AddMedicineForm: React.FC = () => {
 
     try {
       const result = await addMedicineDonation({
-        ...data,
+        name: data.name,
+        category: data.category,
+        quantity: data.quantity,
         expiry_date: format(data.expiry_date, "yyyy-MM-dd"),
-        latitude: latitude,
-        longitude: longitude,
+        description: data.description,
+        location: data.location,
+        latitude: latitude || undefined,
+        longitude: longitude || undefined,
       });
 
       if (result.success) {

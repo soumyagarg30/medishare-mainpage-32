@@ -67,7 +67,7 @@ export const addMedicineDonation = async (medicine: MedicineInput): Promise<{
         latitude: medicine.latitude,
         longitude: medicine.longitude,
         status: 'available'
-      })
+      } as any)
       .select()
       .single();
     
@@ -198,7 +198,7 @@ export const updateMedicineStatus = async (
     
     const { data, error } = await supabase
       .from('medicines')
-      .update({ status })
+      .update({ status } as any)
       .eq('id', medicineId)
       .select()
       .single();
@@ -309,7 +309,7 @@ export const getMedicineLocations = async (): Promise<{
     
     return {
       success: true,
-      data: data
+      data: data as any
     };
   } catch (error) {
     console.error("Error fetching medicine locations:", error);
