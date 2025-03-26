@@ -45,6 +45,7 @@ const Chatbot = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isMobile = useIsMobile();
+  const lastDetectedLanguage = useRef<string>("English");
 
   // Initialize speech recognition when language changes
   useEffect(() => {
@@ -70,6 +71,15 @@ const Chatbot = () => {
       ]);
     }
   }, [currentLanguage, languageCode]);
+
+  // Clean up speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   const initializeSpeechRecognition = () => {
     // Stop any existing recognition
@@ -158,6 +168,69 @@ const Chatbot = () => {
     setShowLanguageMenu(false);
   };
 
+  // Attempt to detect language from text
+  const detectLanguage = (text: string): string => {
+    // Simple language detection based on character sets and common phrases
+    // This is a basic implementation - a production app would use a proper language detection library
+    
+    // Hindi detection (Devanagari script)
+    if (/[\u0900-\u097F]/.test(text)) {
+      lastDetectedLanguage.current = "Hindi";
+      return "Hindi";
+    }
+    
+    // Chinese detection
+    if (/[\u4E00-\u9FFF]/.test(text)) {
+      lastDetectedLanguage.current = "Chinese";
+      return "Chinese";
+    }
+    
+    // Japanese detection (Hiragana, Katakana, Kanji)
+    if (/[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]/.test(text)) {
+      lastDetectedLanguage.current = "Japanese";
+      return "Japanese";
+    }
+    
+    // Arabic detection
+    if (/[\u0600-\u06FF]/.test(text)) {
+      lastDetectedLanguage.current = "Arabic";
+      return "Arabic";
+    }
+    
+    // Bengali detection
+    if (/[\u0980-\u09FF]/.test(text)) {
+      lastDetectedLanguage.current = "Bengali";
+      return "Bengali";
+    }
+    
+    // Tamil detection
+    if (/[\u0B80-\u0BFF]/.test(text)) {
+      lastDetectedLanguage.current = "Tamil";
+      return "Tamil";
+    }
+    
+    // Spanish detection
+    if (/(?:hola|como estas|que tal|buenos dias|gracias|por favor)/.test(text.toLowerCase())) {
+      lastDetectedLanguage.current = "Spanish";
+      return "Spanish";
+    }
+    
+    // French detection
+    if (/(?:bonjour|merci|comment allez-vous|s'il vous plait|au revoir)/.test(text.toLowerCase())) {
+      lastDetectedLanguage.current = "French";
+      return "French";
+    }
+    
+    // German detection
+    if (/(?:guten tag|danke|wie geht es ihnen|bitte|auf wiedersehen)/.test(text.toLowerCase())) {
+      lastDetectedLanguage.current = "German";
+      return "German";
+    }
+    
+    // If no specific language is detected, return the last detected language or default to English
+    return lastDetectedLanguage.current || "English";
+  };
+
   const toggleListening = () => {
     if (!recognitionRef.current) {
       toast({
@@ -193,6 +266,15 @@ const Chatbot = () => {
   const handleSend = (text: string = input) => {
     if (!text.trim()) return;
     
+    // Detect language from user input
+    const detectedLanguage = detectLanguage(text);
+    
+    // Update current language if detection is confident
+    if (detectedLanguage !== currentLanguage) {
+      setCurrentLanguage(detectedLanguage);
+      setLanguageCode(LANGUAGES[detectedLanguage as keyof typeof LANGUAGES]);
+    }
+    
     // Add user message
     const userMessage = { role: "user" as const, content: text };
     setMessages((prev) => [...prev, userMessage]);
@@ -201,8 +283,8 @@ const Chatbot = () => {
     // In a real implementation, you would send this query to your backend/API
     // For demonstration, we'll simulate a structured response
     setTimeout(() => {
-      // Generate a structured response based on the query
-      const responseContent = generateStructuredResponse(text);
+      // Generate a structured response based on the query and detected language
+      const responseContent = generateStructuredResponse(text, detectedLanguage);
       
       const aiResponse = { 
         role: "assistant" as const, 
@@ -218,29 +300,56 @@ const Chatbot = () => {
     }, 1000);
   };
 
-  // Generate structured responses based on user query
-  const generateStructuredResponse = (query: string): string => {
+  // Generate structured responses based on user query and language
+  const generateStructuredResponse = (query: string, detectedLanguage: string): string => {
     const lowerQuery = query.toLowerCase();
     
-    // This is a simplified example. In a production app, use a real AI model or API
-    if (lowerQuery.includes("medicine") || lowerQuery.includes("medication")) {
-      return `### Medicine Information\n\n1. **Donation Process**:\n   - Medicines must be unexpired\n   - Original packaging required\n   - Minimum 3 months before expiry\n\n2. **How to Donate**:\n   - Use our donor portal\n   - Schedule a pickup\n   - Drop at collection centers`;
+    // Basic response templates for different languages
+    const responseTemplates: Record<string, Record<string, string>> = {
+      "English": {
+        medicine: `### Medicine Information\n\n1. **Donation Process**:\n   - Medicines must be unexpired\n   - Original packaging required\n   - Minimum 3 months before expiry\n\n2. **How to Donate**:\n   - Use our donor portal\n   - Schedule a pickup\n   - Drop at collection centers`,
+        ngo: `### NGO Partnerships\n\n1. **Benefits**:\n   - Access to medicine inventory\n   - Distribution infrastructure\n   - Analytics dashboard\n\n2. **Requirements**:\n   - Registered NGO status\n   - Healthcare focus\n   - Operational for at least 1 year`,
+        donate: `### Donation Information\n\n1. **What You Can Donate**:\n   - Unopened medications\n   - Medical equipment\n   - Healthcare supplies\n\n2. **Process**:\n   - Register as donor\n   - List available items\n   - Arrange delivery/pickup`,
+        recipient: `### Recipient Information\n\n1. **Eligibility**:\n   - Verified individuals\n   - Healthcare facilities\n   - Registered NGOs\n\n2. **Process**:\n   - Submit application\n   - Provide documentation\n   - Receive approval`,
+        default: `I'll be happy to help with your query about "${query}". Here's what you might want to know:\n\n1. **MediShare Platform**:\n   - Connects medicine donors with recipients\n   - Ensures safe and compliant transfers\n   - Tracks impact and distribution\n\n2. **How to Get Started**:\n   - Register on our platform\n   - Complete verification\n   - Start donating or requesting medicines`
+      },
+      "Hindi": {
+        medicine: `### दवा जानकारी\n\n1. **दान प्रक्रिया**:\n   - दवाएं अवश्य अनएक्सपायर्ड होनी चाहिए\n   - मूल पैकेजिंग आवश्यक है\n   - समाप्ति से पहले कम से कम 3 महीने\n\n2. **दान कैसे करें**:\n   - हमारे दाता पोर्टल का उपयोग करें\n   - पिकअप शेड्यूल करें\n   - संग्रह केंद्रों पर ड्रॉप करें`,
+        ngo: `### NGO साझेदारी\n\n1. **लाभ**:\n   - दवा इन्वेंटरी तक पहुंच\n   - वितरण बुनियादी ढांचा\n   - एनालिटिक्स डैशबोर्ड\n\n2. **आवश्यकताएँ**:\n   - पंजीकृत NGO स्थिति\n   - स्वास्थ्य देखभाल फोकस\n   - कम से कम 1 वर्ष से संचालन`,
+        donate: `### दान जानकारी\n\n1. **आप क्या दान कर सकते हैं**:\n   - अनखुली दवाएं\n   - चिकित्सा उपकरण\n   - स्वास्थ्य देखभाल आपूर्ति\n\n2. **प्रक्रिया**:\n   - दाता के रूप में रजिस्टर करें\n   - उपलब्ध वस्तुओं की सूची बनाएं\n   - डिलीवरी/पिकअप की व्यवस्था करें`,
+        recipient: `### प्राप्तकर्ता जानकारी\n\n1. **पात्रता**:\n   - सत्यापित व्यक्ति\n   - स्वास्थ्य सुविधाएं\n   - पंजीकृत NGOs\n\n2. **प्रक्रिया**:\n   - आवेदन जमा करें\n   - दस्तावेज प्रदान करें\n   - अनुमोदन प्राप्त करें`,
+        default: `मुझे आपके "${query}" के बारे में प्रश्न में मदद करने में ख़ुशी होगी। यहां आपको क्या जानना चाहिए:\n\n1. **मेडिशेयर प्लेटफॉर्म**:\n   - दवा दाताओं को प्राप्तकर्ताओं से जोड़ता है\n   - सुरक्षित और अनुपालन वाले ट्रांसफर सुनिश्चित करता है\n   - प्रभाव और वितरण को ट्रैक करता है\n\n2. **कैसे शुरू करें**:\n   - हमारे प्लेटफॉर्म पर रजिस्टर करें\n   - सत्यापन पूरा करें\n   - दान देना या दवाइयों का अनुरोध करना शुरू करें`
+      },
+      // You can add more languages and their responses here
+    };
+    
+    // Default to English if the detected language doesn't have templates
+    const languageResponses = responseTemplates[detectedLanguage] || responseTemplates["English"];
+    
+    // Match query to appropriate response template
+    if (lowerQuery.includes("medicine") || lowerQuery.includes("medication") || 
+        lowerQuery.includes("दवा") || lowerQuery.includes("औषधि")) {
+      return languageResponses.medicine;
     } 
-    else if (lowerQuery.includes("ngo") || lowerQuery.includes("organization")) {
-      return `### NGO Partnerships\n\n1. **Benefits**:\n   - Access to medicine inventory\n   - Distribution infrastructure\n   - Analytics dashboard\n\n2. **Requirements**:\n   - Registered NGO status\n   - Healthcare focus\n   - Operational for at least 1 year`;
+    else if (lowerQuery.includes("ngo") || lowerQuery.includes("organization") || 
+             lowerQuery.includes("संगठन") || lowerQuery.includes("संस्था")) {
+      return languageResponses.ngo;
     }
-    else if (lowerQuery.includes("donate") || lowerQuery.includes("donation")) {
-      return `### Donation Information\n\n1. **What You Can Donate**:\n   - Unopened medications\n   - Medical equipment\n   - Healthcare supplies\n\n2. **Process**:\n   - Register as donor\n   - List available items\n   - Arrange delivery/pickup`;
+    else if (lowerQuery.includes("donate") || lowerQuery.includes("donation") || 
+             lowerQuery.includes("दान") || lowerQuery.includes("देना")) {
+      return languageResponses.donate;
     }
-    else if (lowerQuery.includes("recipient") || lowerQuery.includes("receive")) {
-      return `### Recipient Information\n\n1. **Eligibility**:\n   - Verified individuals\n   - Healthcare facilities\n   - Registered NGOs\n\n2. **Process**:\n   - Submit application\n   - Provide documentation\n   - Receive approval`;
+    else if (lowerQuery.includes("recipient") || lowerQuery.includes("receive") || 
+             lowerQuery.includes("प्राप्तकर्ता") || lowerQuery.includes("प्राप्त")) {
+      return languageResponses.recipient;
     }
     else {
-      return `I'll be happy to help with your query about "${query}". Here's what you might want to know:\n\n1. **MediShare Platform**:\n   - Connects medicine donors with recipients\n   - Ensures safe and compliant transfers\n   - Tracks impact and distribution\n\n2. **How to Get Started**:\n   - Register on our platform\n   - Complete verification\n   - Start donating or requesting medicines`;
+      return languageResponses.default;
     }
   };
 
   const speakText = (text: string) => {
+    // If voice is disabled, don't speak
     if (!voiceEnabled) return;
     
     // Remove markdown formatting for speech
@@ -248,6 +357,9 @@ const Chatbot = () => {
     
     // Use browser's built-in speech synthesis
     if ('speechSynthesis' in window) {
+      // Cancel any ongoing speech first
+      window.speechSynthesis.cancel();
+      
       setIsSpeaking(true);
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = languageCode;
@@ -265,8 +377,6 @@ const Chatbot = () => {
         });
       };
       
-      // Cancel any ongoing speech
-      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     } else {
       toast({
@@ -285,11 +395,11 @@ const Chatbot = () => {
   };
 
   const toggleVoice = () => {
-    setVoiceEnabled(!voiceEnabled);
-    
-    if (isSpeaking && !voiceEnabled) {
+    // If turning voice off, make sure to stop any ongoing speech
+    if (voiceEnabled) {
       stopSpeaking();
     }
+    setVoiceEnabled(!voiceEnabled);
   };
 
   const clearChat = () => {
