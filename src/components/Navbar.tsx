@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, UserCircle } from "lucide-react";
@@ -47,7 +48,7 @@ const Navbar = () => {
             <NavLink href="/" label="Home" isScrolled={isScrolled} />
             <NavLink href="/sign-in" label="Recipients" isScrolled={isScrolled} />
             <NavLink href="/ngos" label="NGOs" isScrolled={isScrolled} />
-            <NavLink href="/providers" label="Providers" isScrolled={isScrolled} />
+            <NavLink href="/donors" label="Donors" isScrolled={isScrolled} />
             <NavLink href="/contact" label="Contact Us" isScrolled={isScrolled} />
             
             <Link to="/sign-in">
@@ -82,7 +83,7 @@ const Navbar = () => {
               <MobileNavLink href="/" label="Home" onClick={toggleMenu} />
               <MobileNavLink href="/sign-in" label="Recipients" onClick={toggleMenu} />
               <MobileNavLink href="/ngos" label="NGOs" onClick={toggleMenu} />
-              <MobileNavLink href="/providers" label="Providers" onClick={toggleMenu} />
+              <MobileNavLink href="/donors" label="Donors" onClick={toggleMenu} />
               <MobileNavLink href="/contact" label="Contact Us" onClick={toggleMenu} />
               <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />
             </div>

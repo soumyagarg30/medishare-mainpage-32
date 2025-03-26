@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -38,12 +37,19 @@ const UserTypeSelector = ({ selectedType, onSelectType }) => {
       icon: <Building className="h-10 w-10 text-medishare-blue mb-2" />,
       verification: "DigiLocker verification"
     },
+    {
+      id: "admin",
+      title: "Admin",
+      description: "Platform administrators with full access",
+      icon: <Shield className="h-10 w-10 text-medishare-gold mb-2" />,
+      verification: "Admin verification code"
+    }
   ];
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold text-medishare-dark">Choose account type</h2>
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {userTypes.map((type) => (
           <div
             key={type.id}
@@ -146,6 +152,30 @@ const recipientFormSchema = z.object({
   }),
 });
 
+const adminFormSchema = z.object({
+  fullName: z.string().min(2, {
+    message: "Full name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  password: z.string().min(8, {
+    message: "Password must be at least 8 characters.",
+  }),
+  adminCode: z.string().min(6, {
+    message: "Admin verification code must be at least 6 characters.",
+  }),
+  phoneNumber: z.string().min(10, {
+    message: "Please enter a valid phone number.",
+  }),
+  department: z.string().min(2, {
+    message: "Please enter your department.",
+  }),
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the terms and conditions." }),
+  }),
+});
+
 const Register = () => {
   const [step, setStep] = useState(1);
   const [userType, setUserType] = useState(null);
@@ -187,6 +217,19 @@ const Register = () => {
       digilocker: "",
       phoneNumber: "",
       address: "",
+      termsAccepted: false,
+    },
+  });
+
+  const adminForm = useForm({
+    resolver: zodResolver(adminFormSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      adminCode: "",
+      phoneNumber: "",
+      department: "",
       termsAccepted: false,
     },
   });
@@ -249,6 +292,15 @@ const Register = () => {
           onSubmit: recipientForm.handleSubmit(onSubmit),
           render: () => (
             <RecipientRegistrationForm form={recipientForm} />
+          ),
+        };
+      case "admin":
+        return {
+          form: adminForm,
+          schema: adminFormSchema,
+          onSubmit: adminForm.handleSubmit(onSubmit),
+          render: () => (
+            <AdminRegistrationForm form={adminForm} />
           ),
         };
       default:
@@ -338,6 +390,7 @@ const RegistrationSuccess = ({ userType }) => {
     donor: "We're verifying your GST ID. You'll receive an email when your account is verified.",
     ngo: "We're verifying your UID. You'll receive an email when your account is verified.",
     recipient: "We're verifying your DigiLocker information. You'll receive an email when your account is verified.",
+    admin: "We're verifying your admin credentials. You'll receive an email when your account is verified.",
   };
 
   return (
@@ -676,6 +729,123 @@ const RecipientRegistrationForm = ({ form }) => {
               <FormLabel>Address</FormLabel>
               <FormControl>
                 <Input placeholder="Enter your address" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      
+      <div className="mt-6">
+        <FormField
+          control={form.control}
+          name="termsAccepted"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4 border border-gray-200">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>
+                  I accept the <a href="#" className="text-medishare-orange hover:underline">terms and conditions</a> and <a href="#" className="text-medishare-orange hover:underline">privacy policy</a>
+                </FormLabel>
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
+        />
+      </div>
+    </Form>
+  );
+};
+
+// Create Admin Registration Form
+const AdminRegistrationForm = ({ form }) => {
+  return (
+    <Form {...form}>
+      <h2 className="text-2xl font-semibold text-medishare-dark mb-6">Admin Registration</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormField
+          control={form.control}
+          name="fullName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter your full name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Address</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter your email" type="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input placeholder="Create a password" type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="adminCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Admin Verification Code</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter admin verification code" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="phoneNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone Number</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter your phone number" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="department"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Department</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter your department" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
