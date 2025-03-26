@@ -13,9 +13,9 @@ const Footer = () => {
               <img 
                 src="/lovable-uploads/45a81f67-90b3-43d3-9499-2a874a4d48be.png" 
                 alt="MediShare Logo" 
-                className="h-10 w-auto mr-2 bg-white rounded-full p-1"
+                className="h-14 w-auto mr-2 bg-white rounded-full p-1 shadow-md" 
               />
-              <span className="text-xl font-display font-bold">MediShare</span>
+              <span className="text-2xl font-display font-bold">MediShare</span>
             </div>
             <p className="text-gray-300 mb-4 text-sm">
               Connecting surplus medicines with those in need. Join our mission for a healthier, more sustainable world.

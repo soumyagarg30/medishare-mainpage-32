@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, UserCircle } from "lucide-react";
@@ -51,30 +50,15 @@ const Navbar = () => {
             <NavLink href="/providers" label="Providers" isScrolled={isScrolled} />
             <NavLink href="/contact" label="Contact Us" isScrolled={isScrolled} />
             
-            <div className="flex space-x-3">
-              <Link to="/sign-in">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className={`${
-                    isScrolled 
-                      ? "border-medishare-blue text-medishare-blue hover:bg-medishare-blue/10" 
-                      : "border-white text-white hover:bg-white/10"
-                  }`}
-                >
-                  Donate Medicines
-                </Button>
-              </Link>
-              <Link to="/sign-in">
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  className="bg-medishare-orange hover:bg-medishare-gold text-white"
-                >
-                  Receive Medicines
-                </Button>
-              </Link>
-            </div>
+            <Link to="/sign-in">
+              <Button 
+                variant="default" 
+                size="sm"
+                className="bg-medishare-orange hover:bg-medishare-gold text-white"
+              >
+                Sign In
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -100,8 +84,7 @@ const Navbar = () => {
               <MobileNavLink href="/ngos" label="NGOs" onClick={toggleMenu} />
               <MobileNavLink href="/providers" label="Providers" onClick={toggleMenu} />
               <MobileNavLink href="/contact" label="Contact Us" onClick={toggleMenu} />
-              <MobileNavLink href="/sign-in" label="Donate Medicines" onClick={toggleMenu} />
-              <MobileNavLink href="/sign-in" label="Receive Medicines" onClick={toggleMenu} />
+              <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />
             </div>
           </div>
         )}
