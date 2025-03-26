@@ -46,25 +46,35 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <NavLink href="/" label="Home" isScrolled={isScrolled} />
-            <NavLink href="/about" label="About us" isScrolled={isScrolled} />
+            <NavLink href="/sign-in" label="Recipients" isScrolled={isScrolled} />
             <NavLink href="/ngos" label="NGOs" isScrolled={isScrolled} />
             <NavLink href="/providers" label="Providers" isScrolled={isScrolled} />
             <NavLink href="/contact" label="Contact Us" isScrolled={isScrolled} />
             
-            <Link to="/sign-in">
-              <Button 
-                variant="outline" 
-                size="sm"
-                className={`ml-2 ${
-                  isScrolled 
-                    ? "border-medishare-blue text-medishare-blue hover:bg-medishare-blue/10" 
-                    : "border-white text-white hover:bg-white/10"
-                }`}
-              >
-                <UserCircle className="mr-1 h-4 w-4" />
-                Sign In
-              </Button>
-            </Link>
+            <div className="flex space-x-3">
+              <Link to="/sign-in">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={`${
+                    isScrolled 
+                      ? "border-medishare-blue text-medishare-blue hover:bg-medishare-blue/10" 
+                      : "border-white text-white hover:bg-white/10"
+                  }`}
+                >
+                  Donate Medicines
+                </Button>
+              </Link>
+              <Link to="/sign-in">
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="bg-medishare-orange hover:bg-medishare-gold text-white"
+                >
+                  Receive Medicines
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -86,11 +96,12 @@ const Navbar = () => {
           <div className="md:hidden pt-4 pb-3 animate-fade-in-up">
             <div className="flex flex-col space-y-4">
               <MobileNavLink href="/" label="Home" onClick={toggleMenu} />
-              <MobileNavLink href="/about" label="About us" onClick={toggleMenu} />
+              <MobileNavLink href="/sign-in" label="Recipients" onClick={toggleMenu} />
               <MobileNavLink href="/ngos" label="NGOs" onClick={toggleMenu} />
               <MobileNavLink href="/providers" label="Providers" onClick={toggleMenu} />
               <MobileNavLink href="/contact" label="Contact Us" onClick={toggleMenu} />
-              <MobileNavLink href="/sign-in" label="Sign In" onClick={toggleMenu} />
+              <MobileNavLink href="/sign-in" label="Donate Medicines" onClick={toggleMenu} />
+              <MobileNavLink href="/sign-in" label="Receive Medicines" onClick={toggleMenu} />
             </div>
           </div>
         )}

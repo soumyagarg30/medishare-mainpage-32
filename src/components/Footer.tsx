@@ -34,19 +34,19 @@ const Footer = () => {
               <FooterLink href="/" label="Home" />
               <FooterLink href="/about" label="About Us" />
               <FooterLink href="/how-it-works" label="How It Works" />
-              <FooterLink href="/donate" label="Donate Medicines" />
-              <FooterLink href="/request" label="Request Medicines" />
+              <FooterLink href="/sign-in" label="Donate Medicines" />
+              <FooterLink href="/sign-in" label="Request Medicines" />
             </ul>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4">Get Involved</h3>
+            <h3 className="text-lg font-semibold mb-4">Trusted By</h3>
             <ul className="space-y-2">
-              <FooterLink href="/providers" label="For Providers" />
-              <FooterLink href="/ngos" label="For NGOs" />
-              <FooterLink href="/volunteers" label="Volunteer" />
-              <FooterLink href="/partners" label="Become a Partner" />
-              <FooterLink href="/support" label="Support Us" />
+              <li className="text-gray-300">Kerala Foundation</li>
+              <li className="text-gray-300">Uday Foundation</li>
+              <li className="text-gray-300">ABC Pharma</li>
+              <li className="text-gray-300">GHI Healthcare</li>
+              <li className="text-gray-300">XYZ Medical</li>
             </ul>
           </div>
 
