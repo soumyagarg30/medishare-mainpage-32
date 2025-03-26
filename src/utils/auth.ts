@@ -65,6 +65,19 @@ export const fetchUserProfile = async (userId: string): Promise<{
   message?: string;
 }> => {
   try {
+    // Get user's email from Supabase auth
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !authData.user) {
+      console.error("Error fetching auth user:", authError);
+      return {
+        success: false,
+        message: "Could not fetch user information"
+      };
+    }
+    
+    const userEmail = authData.user.email || "";
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
@@ -89,7 +102,7 @@ export const fetchUserProfile = async (userId: string): Promise<{
     // Transform from database format to our UserData format
     const userData: UserData = {
       id: data.id,
-      email: data.email || "",
+      email: userEmail, // Use email from auth.getUser() instead of profile
       name: data.name || "",
       userType: data.user_type as UserType,
       verified: data.verified || false,
