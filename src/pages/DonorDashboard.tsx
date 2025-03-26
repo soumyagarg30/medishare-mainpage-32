@@ -23,7 +23,11 @@ import {
   Calendar,
   FileText,
   Lock,
-  Phone
+  Phone,
+  Camera,
+  Loader2,
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import {
   Dialog,
@@ -32,6 +36,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { extractMedicineInfo, validateMedicineData } from "@/utils/ocrUtils";
+import { validateMedicineSubmission } from "@/utils/auth";
 
 // Sample donation data
 const donationHistory = [
@@ -78,7 +89,8 @@ const donationFormSchema = z.object({
   quantity: z.string().min(1, { message: "Quantity is required" }),
   expiryDate: z.string().min(1, { message: "Expiry date is required" }),
   description: z.string().optional(),
-  medicineImage: z.string().optional()
+  medicineImage: z.string().optional(),
+  activeIngredients: z.array(z.string()).optional(),
 });
 
 const DonorDashboard = () => {
@@ -88,6 +100,9 @@ const DonorDashboard = () => {
   const [verificationType, setVerificationType] = useState("phone");
   const [verificationCode, setVerificationCode] = useState("");
   const [pendingChanges, setPendingChanges] = useState({});
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+  const [ocrResults, setOcrResults] = useState(null);
+  const [showOcrAlert, setShowOcrAlert] = useState(false);
 
   // Initialize form
   const form = useForm({
@@ -97,7 +112,8 @@ const DonorDashboard = () => {
       quantity: "",
       expiryDate: "",
       description: "",
-      medicineImage: ""
+      medicineImage: "",
+      activeIngredients: [],
     }
   });
 
@@ -110,6 +126,65 @@ const DonorDashboard = () => {
         form.setValue("medicineImage", reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const processImageWithOCR = async () => {
+    if (!imagePreview) {
+      toast({
+        title: "No image selected",
+        description: "Please upload an image of the medicine first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingOCR(true);
+    try {
+      const extractedData = await extractMedicineInfo(imagePreview as string);
+      
+      if (extractedData) {
+        const validation = validateMedicineData(extractedData);
+        
+        // Set the form values with the extracted data
+        form.setValue("medicineName", extractedData.medicineName);
+        form.setValue("expiryDate", extractedData.expiryDate);
+        form.setValue("activeIngredients", extractedData.activeIngredients);
+        
+        setOcrResults(extractedData);
+        setShowOcrAlert(true);
+        
+        // If validation suggests corrections, show them
+        if (!validation.isValid && validation.suggestions) {
+          toast({
+            title: "Validation Notice",
+            description: "Some extracted data may need verification. Please review the suggestions.",
+            variant: "default",
+          });
+          
+          // Apply any suggested corrections
+          if (validation.suggestions.medicineName) {
+            form.setValue("medicineName", validation.suggestions.medicineName);
+          }
+          if (validation.suggestions.activeIngredients) {
+            form.setValue("activeIngredients", validation.suggestions.activeIngredients);
+          }
+        } else {
+          toast({
+            title: "OCR Successful",
+            description: "Medicine information extracted successfully.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("OCR error:", error);
+      toast({
+        title: "OCR Failed",
+        description: "Failed to process image. Please enter details manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingOCR(false);
     }
   };
 
@@ -137,6 +212,20 @@ const DonorDashboard = () => {
   };
 
   const onSubmit = (data) => {
+    const validation = validateMedicineSubmission({
+      name: data.medicineName,
+      quantity: data.quantity,
+      expiryDate: data.expiryDate,
+    });
+
+    if (!validation.isValid && validation.errors) {
+      // Display errors for each field
+      Object.entries(validation.errors).forEach(([field, message]) => {
+        form.setError(field as any, { message });
+      });
+      return;
+    }
+
     console.log("Donation submitted:", data);
     toast({
       title: "Donation submitted successfully!",
@@ -144,6 +233,8 @@ const DonorDashboard = () => {
     });
     form.reset();
     setImagePreview(null);
+    setOcrResults(null);
+    setShowOcrAlert(false);
   };
 
   return (
@@ -155,6 +246,7 @@ const DonorDashboard = () => {
           <h1 className="text-3xl font-bold text-medishare-dark mb-6">Donor Dashboard</h1>
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            {/* Sidebar */}
             <div className="md:col-span-3">
               <Card>
                 <CardContent className="p-0">
@@ -274,6 +366,86 @@ const DonorDashboard = () => {
                   <CardContent>
                     <Form {...form}>
                       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <div className="space-y-4">
+                          <label className="text-sm font-medium">Upload Medicine Image</label>
+                          <div className="flex flex-col items-center justify-center w-full">
+                            <label
+                              htmlFor="dropzone-file"
+                              className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                            >
+                              {imagePreview ? (
+                                <div className="w-full h-full p-2 flex items-center justify-center">
+                                  <img
+                                    src={imagePreview}
+                                    alt="Medicine preview"
+                                    className="max-h-full object-contain"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                  <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                                  <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                  <p className="text-xs text-gray-500">PNG, JPG or JPEG (MAX. 2MB)</p>
+                                </div>
+                              )}
+                              <input
+                                id="dropzone-file"
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                              />
+                            </label>
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-2">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={processImageWithOCR}
+                              disabled={!imagePreview || isProcessingOCR}
+                              className="flex items-center justify-center gap-2"
+                            >
+                              {isProcessingOCR ? 
+                                <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                <Camera className="h-4 w-4" />
+                              }
+                              {isProcessingOCR ? "Processing..." : "Extract Medicine Info (OCR)"}
+                            </Button>
+                            
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => {
+                                setImagePreview(null);
+                                form.setValue("medicineImage", "");
+                                setOcrResults(null);
+                                setShowOcrAlert(false);
+                              }}
+                              disabled={!imagePreview}
+                              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                            >
+                              Clear Image
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {showOcrAlert && ocrResults && (
+                          <Alert className="bg-green-50 border-green-200 text-green-800">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <AlertTitle>OCR Processing Successful</AlertTitle>
+                            <AlertDescription>
+                              We've detected the following information:
+                              <ul className="mt-2 list-disc list-inside text-sm">
+                                <li><strong>Medicine Name:</strong> {ocrResults.medicineName}</li>
+                                <li><strong>Expiry Date:</strong> {ocrResults.expiryDate}</li>
+                                <li><strong>Active Ingredients:</strong> {ocrResults.activeIngredients.join(", ")}</li>
+                              </ul>
+                              <p className="mt-2 text-sm">Please verify this information is correct before submitting.</p>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
@@ -323,6 +495,30 @@ const DonorDashboard = () => {
                         
                         <FormField
                           control={form.control}
+                          name="activeIngredients"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Active Ingredients</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Enter active ingredients, separated by commas"
+                                  value={field.value ? field.value.join(", ") : ""}
+                                  onChange={(e) => {
+                                    const ingredients = e.target.value
+                                      .split(",")
+                                      .map(item => item.trim())
+                                      .filter(item => item.length > 0);
+                                    field.onChange(ingredients);
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
                           name="description"
                           render={({ field }) => (
                             <FormItem>
@@ -338,39 +534,6 @@ const DonorDashboard = () => {
                             </FormItem>
                           )}
                         />
-                        
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Upload Medicine Image</label>
-                          <div className="flex items-center justify-center w-full">
-                            <label
-                              htmlFor="dropzone-file"
-                              className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-                            >
-                              {imagePreview ? (
-                                <div className="w-full h-full p-2 flex items-center justify-center">
-                                  <img
-                                    src={imagePreview}
-                                    alt="Medicine preview"
-                                    className="max-h-full object-contain"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                  <Upload className="w-8 h-8 mb-4 text-gray-500" />
-                                  <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                  <p className="text-xs text-gray-500">PNG, JPG or JPEG (MAX. 2MB)</p>
-                                </div>
-                              )}
-                              <input
-                                id="dropzone-file"
-                                type="file"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                              />
-                            </label>
-                          </div>
-                        </div>
                         
                         <Button type="submit" className="bg-medishare-orange hover:bg-medishare-gold">
                           Submit Donation
@@ -647,18 +810,3 @@ const DonorDashboard = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowVerificationDialog(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-medishare-blue hover:bg-medishare-blue/90" onClick={handleVerificationSubmit}>
-              Verify & Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Footer />
-    </>
-  );
-};
-
-export default DonorDashboard;
