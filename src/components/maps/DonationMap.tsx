@@ -24,21 +24,27 @@ const sampleCenters = [
     id: 1,
     name: "City Hospital",
     location: [19.0760, 72.8777], // Mumbai coordinates (lat, lng)
-    medicines: ["Antibiotics", "Painkillers"]
+    medicines: ["Antibiotics", "Painkillers"],
+    distance: 2.3 // Distance in km
   },
   {
     id: 2,
     name: "Rural Health Center",
     location: [19.1136, 72.8560], // Andheri, Mumbai
-    medicines: ["Asthma Inhalers", "Vitamins"]
+    medicines: ["Asthma Inhalers", "Vitamins"],
+    distance: 4.5 // Distance in km
   },
   {
     id: 3,
     name: "Community Clinic",
     location: [19.1004, 72.8296], // Juhu, Mumbai
-    medicines: ["First Aid Supplies", "Diabetes Medication"]
+    medicines: ["First Aid Supplies", "Diabetes Medication"],
+    distance: 1.7 // Distance in km
   }
 ];
+
+// Sort centers by distance
+const sortedCenters = [...sampleCenters].sort((a, b) => a.distance - b.distance);
 
 interface DonationMapProps {
   title: string;
@@ -74,7 +80,7 @@ const DonationMap: React.FC<DonationMapProps> = ({ title, className }) => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             
-            {sampleCenters.map(center => (
+            {sortedCenters.map(center => (
               <Marker 
                 key={center.id} 
                 position={[center.location[0], center.location[1]]} 
@@ -84,6 +90,9 @@ const DonationMap: React.FC<DonationMapProps> = ({ title, className }) => {
                   <div>
                     <h3 className="font-bold">{center.name}</h3>
                     <p>Needed Medicines: {center.medicines.join(', ')}</p>
+                    <p className="text-sm text-green-600 font-medium mt-1">
+                      {center.distance} km away
+                    </p>
                   </div>
                 </Popup>
               </Marker>

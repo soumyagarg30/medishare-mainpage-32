@@ -29,7 +29,7 @@ const availableMedicines = [
     quantity: "500 tablets",
     ngo: "Health For All NGO",
     location: "Bandra, Mumbai",
-    distance: "2.3 km"
+    distance: 2.3
   },
   {
     id: "MED002",
@@ -37,7 +37,7 @@ const availableMedicines = [
     quantity: "25 vials",
     ngo: "Medical Aid Foundation",
     location: "Andheri, Mumbai",
-    distance: "4.5 km"
+    distance: 4.5
   },
   {
     id: "MED003",
@@ -45,7 +45,7 @@ const availableMedicines = [
     quantity: "200 tablets",
     ngo: "Care NGO",
     location: "Dadar, Mumbai",
-    distance: "3.8 km"
+    distance: 3.8
   }
 ];
 
@@ -85,11 +85,22 @@ const RecipientDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [medicineType, setMedicineType] = useState("all");
   const [fileUploaded, setFileUploaded] = useState(false);
+  const [sortBy, setSortBy] = useState("distance"); // Default sort by distance
   
-  const filteredMedicines = availableMedicines.filter(medicine => 
-    medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (medicineType === "all" || medicine.name.toLowerCase().includes(medicineType.toLowerCase()))
-  );
+  // Filter and sort medicines
+  const filteredAndSortedMedicines = availableMedicines
+    .filter(medicine => 
+      medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (medicineType === "all" || medicine.name.toLowerCase().includes(medicineType.toLowerCase()))
+    )
+    .sort((a, b) => {
+      if (sortBy === "distance") {
+        return a.distance - b.distance;
+      } else if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      return 0;
+    });
   
   const handleRequest = (medicine) => {
     if (!fileUploaded) {
@@ -274,7 +285,7 @@ const RecipientDashboard = () => {
                             />
                           </div>
                         </div>
-                        <div className="w-full md:w-1/3">
+                        <div className="w-full md:w-1/4">
                           <Select value={medicineType} onValueChange={setMedicineType}>
                             <SelectTrigger>
                               <SelectValue placeholder="Filter by type" />
@@ -288,11 +299,22 @@ const RecipientDashboard = () => {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div className="w-full md:w-1/4">
+                          <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sort by" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="distance">Nearest First</SelectItem>
+                              <SelectItem value="name">Name (A-Z)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       
                       <div className="space-y-4">
-                        {filteredMedicines.length > 0 ? (
-                          filteredMedicines.map((medicine) => (
+                        {filteredAndSortedMedicines.length > 0 ? (
+                          filteredAndSortedMedicines.map((medicine) => (
                             <div key={medicine.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                               <div className="flex flex-col md:flex-row justify-between gap-4">
                                 <div>
@@ -309,7 +331,7 @@ const RecipientDashboard = () => {
                                     </p>
                                     <p className="text-sm text-gray-600">
                                       <MapPin className="h-4 w-4 inline mr-1" />
-                                      {medicine.distance} away
+                                      <span className="text-green-600 font-medium">{medicine.distance} km away</span>
                                     </p>
                                   </div>
                                 </div>
