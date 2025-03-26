@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Phone, Mail, ArrowRight, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { MapPin, Phone, Mail, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -14,7 +14,7 @@ const Footer = () => {
               <img 
                 src="/lovable-uploads/45a81f67-90b3-43d3-9499-2a874a4d48be.png" 
                 alt="MediShare Logo" 
-                className="h-16 w-auto" // Increased size from h-12 to h-16
+                className="h-16 w-auto"
               />
             </Link>
             <p className="text-gray-300 mt-4 text-sm">
@@ -38,10 +38,46 @@ const Footer = () => {
           <div className="col-span-1">
             <h3 className="text-lg font-bold mb-4">Trusted By</h3>
             <ul className="space-y-2">
-              <li className="text-gray-300">Ministry of Health</li>
-              <li className="text-gray-300">State Medical Councils</li>
-              <li className="text-gray-300">Leading Hospital Chains</li>
-              <li className="text-gray-300">National NGO Networks</li>
+              <li>
+                <a 
+                  href="https://main.mohfw.gov.in/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-gray-300 hover:text-medishare-orange transition duration-300"
+                >
+                  Ministry of Health
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://www.nmc.org.in/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-gray-300 hover:text-medishare-orange transition duration-300"
+                >
+                  State Medical Councils
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://www.apollohospitals.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-gray-300 hover:text-medishare-orange transition duration-300"
+                >
+                  Leading Hospital Chains
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://www.udayfoundation.org/donate-medicines-delhi/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-gray-300 hover:text-medishare-orange transition duration-300"
+                >
+                  National NGO Networks
+                </a>
+              </li>
             </ul>
           </div>
 

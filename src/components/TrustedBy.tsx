@@ -27,28 +27,28 @@ const TrustedBy = () => {
             </h3>
             <ul className="space-y-4 text-medishare-blue">
               <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                <a href="https://keralasamajam.org/" target="_blank" rel="noopener noreferrer">
-                  Kerala Foundation
-                </a>
-              </li>
-              <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                <a href="https://www.udayfoundation.org/" target="_blank" rel="noopener noreferrer">
+                <a href="https://www.udayfoundation.org/donate-medicines-delhi/" target="_blank" rel="noopener noreferrer">
                   Uday Foundation
                 </a>
               </li>
               <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                <a href="https://www.cipla.com/" target="_blank" rel="noopener noreferrer">
-                  Cipla Pharma
+                <a href="https://serudsindia.org/donate-medicines-india-poor/" target="_blank" rel="noopener noreferrer">
+                  SERUDS India
                 </a>
               </li>
               <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                <a href="https://www.ghihealthcare.com/" target="_blank" rel="noopener noreferrer">
-                  GHI Healthcare
+                <a href="https://www.apexkidneyfoundation.org/patient-help-portal/medicines.php" target="_blank" rel="noopener noreferrer">
+                  Apex Kidney Foundation
                 </a>
               </li>
               <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
-                <a href="https://www.aiimsexams.ac.in/" target="_blank" rel="noopener noreferrer">
-                  AIIMS Medical
+                <a href="http://mangalamfoundation.org/mangalam-foundation-medical-center.html" target="_blank" rel="noopener noreferrer">
+                  Mangalam Foundation
+                </a>
+              </li>
+              <li className="hover:text-medishare-orange transition-colors duration-300 text-center lg:text-left">
+                <a href="https://keralasamajam.org/" target="_blank" rel="noopener noreferrer">
+                  Kerala Foundation
                 </a>
               </li>
             </ul>
