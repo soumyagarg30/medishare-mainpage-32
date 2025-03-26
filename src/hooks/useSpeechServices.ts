@@ -17,6 +17,7 @@ export const useSpeechServices = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -37,6 +38,13 @@ export const useSpeechServices = ({
       }
     };
   }, []);
+
+  // This is specifically to stop speaking when voiceEnabled is toggled off
+  useEffect(() => {
+    if (!voiceEnabled && isSpeaking) {
+      stopSpeaking();
+    }
+  }, [voiceEnabled]);
 
   const initializeSpeechRecognition = () => {
     // Stop any existing recognition
@@ -122,7 +130,7 @@ export const useSpeechServices = ({
     // Use browser's built-in speech synthesis
     if ('speechSynthesis' in window) {
       // Cancel any ongoing speech first
-      window.speechSynthesis.cancel();
+      stopSpeaking();
       
       setIsSpeaking(true);
       const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -141,6 +149,8 @@ export const useSpeechServices = ({
         });
       };
       
+      // Store the utterance to be able to cancel it
+      speechSynthesisRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     } else {
       toast({
@@ -154,6 +164,7 @@ export const useSpeechServices = ({
   const stopSpeaking = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
+      speechSynthesisRef.current = null;
       setIsSpeaking(false);
     }
   };

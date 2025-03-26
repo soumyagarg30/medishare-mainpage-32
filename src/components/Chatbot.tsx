@@ -41,6 +41,13 @@ const Chatbot = () => {
     }
   }, [currentLanguage, languageCode]);
 
+  // Stop speaking if voice is disabled
+  useEffect(() => {
+    if (!voiceEnabled && isSpeaking) {
+      stopSpeaking();
+    }
+  }, [voiceEnabled, isSpeaking, stopSpeaking]);
+
   const changeLanguage = (language: string) => {
     setCurrentLanguage(language);
     setLanguageCode(LANGUAGES[language as keyof typeof LANGUAGES]);
@@ -77,10 +84,8 @@ const Chatbot = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     
-    // In a real implementation, you would send this query to your backend/API
-    // For demonstration, we'll simulate a structured response
+    // Generate response based on the query and detected language
     setTimeout(() => {
-      // Generate a structured response based on the query and detected language
       const responseContent = generateStructuredResponse(text, detectedLanguage);
       
       const aiResponse = { 
