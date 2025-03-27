@@ -50,12 +50,12 @@ const DonorsTab = () => {
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {nearbyDonors.map((donor) => (
-                  <tr key={donor.id} className="border-b hover:bg-gray-50">
+                  <tr key={donor.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4 text-sm font-medium">{donor.name}</td>
                     <td className="px-4 py-4 text-sm">{donor.distance}</td>
-                    <td className="px-4 py-4 text-sm">{donor.medicines}</td>
+                    <td className="px-4 py-4 text-sm max-w-[200px] truncate">{donor.medicines}</td>
                     <td className="px-4 py-4 text-sm">{donor.contact}</td>
                     <td className="px-4 py-4 text-sm">
                       <Button variant="ghost" size="sm" className="text-medishare-blue">

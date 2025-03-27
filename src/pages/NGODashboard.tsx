@@ -44,6 +44,19 @@ const NGODashboard = () => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case "profile": return <ProfileTab user={user} />;
+      case "requests": return <RequestsTab />;
+      case "inventory": return <InventoryTab />;
+      case "donors": return <DonorsTab />;
+      case "recipients": return <RecipientsTab />;
+      case "analytics": return <AnalyticsTab />;
+      case "settings": return <SettingsTab />;
+      default: return <ProfileTab user={user} />;
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -51,7 +64,7 @@ const NGODashboard = () => {
         <div className="container mx-auto px-4 md:px-6">
           <WelcomeMessage user={user} userTypeTitle="NGO Partner" />
           
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-6">
             {/* Sidebar */}
             <div className="md:col-span-3">
               <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -59,13 +72,7 @@ const NGODashboard = () => {
             
             {/* Main Content */}
             <div className="md:col-span-9">
-              {activeTab === "profile" && <ProfileTab user={user} />}
-              {activeTab === "requests" && <RequestsTab />}
-              {activeTab === "inventory" && <InventoryTab />}
-              {activeTab === "donors" && <DonorsTab />}
-              {activeTab === "recipients" && <RecipientsTab />}
-              {activeTab === "analytics" && <AnalyticsTab />}
-              {activeTab === "settings" && <SettingsTab />}
+              {renderActiveTab()}
             </div>
           </div>
         </div>
