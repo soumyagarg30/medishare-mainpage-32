@@ -204,7 +204,7 @@ export const registerUser = async (
       department: userData.department
     };
     
-    // Register user with Supabase - but don't sign them in automatically
+    // Register user with Supabase
     const { data, error } = await supabase.auth.signUp({
       email: userData.email,
       password,
@@ -225,8 +225,8 @@ export const registerUser = async (
       };
     }
     
-    // Important: We don't want to save the user data to local storage after registration
-    // We should only do that after they confirm their email and log in
+    // Sign out immediately after registration to prevent auto-login
+    await supabase.auth.signOut();
     
     return {
       success: true,
