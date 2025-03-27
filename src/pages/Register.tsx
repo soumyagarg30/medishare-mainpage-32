@@ -16,12 +16,14 @@ import DonorRegistrationForm from "@/components/registration/DonorRegistrationFo
 import NGORegistrationForm from "@/components/registration/NGORegistrationForm";
 import RecipientRegistrationForm from "@/components/registration/RecipientRegistrationForm";
 import AdminRegistrationForm from "@/components/registration/AdminRegistrationForm";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   donorFormSchema, 
   ngoFormSchema, 
   recipientFormSchema, 
   adminFormSchema 
 } from "@/components/registration/schemas";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -30,32 +32,78 @@ const Register = () => {
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Check if user is already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
-      // Redirect to appropriate dashboard based on user type
-      const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+    const checkAuth = async () => {
+      const isAuth = await isAuthenticated();
       
-      if (user.userType) {
-        switch(user.userType) {
-          case "donor":
-            navigate("/donor-dashboard");
-            break;
-          case "ngo":
-            navigate("/ngo-dashboard");
-            break;
-          case "recipient":
-            navigate("/recipient-dashboard");
-            break;
-          case "admin":
-            navigate("/admin-dashboard");
-            break;
-          default:
-            navigate("/");
+      if (isAuth) {
+        // Redirect to appropriate dashboard based on user type
+        const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+        
+        if (user.userType) {
+          switch(user.userType) {
+            case "donor":
+              navigate("/donor-dashboard");
+              break;
+            case "ngo":
+              navigate("/ngo-dashboard");
+              break;
+            case "recipient":
+              navigate("/recipient-dashboard");
+              break;
+            case "admin":
+              navigate("/admin-dashboard");
+              break;
+            default:
+              navigate("/");
+          }
         }
       }
-    }
+    };
+    
+    checkAuth();
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN') {
+          const checkUserAndRedirect = async () => {
+            const isAuth = await isAuthenticated();
+            if (isAuth) {
+              const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+              if (user.userType) {
+                switch(user.userType) {
+                  case "donor":
+                    navigate("/donor-dashboard");
+                    break;
+                  case "ngo":
+                    navigate("/ngo-dashboard");
+                    break;
+                  case "recipient":
+                    navigate("/recipient-dashboard");
+                    break;
+                  case "admin":
+                    navigate("/admin-dashboard");
+                    break;
+                  default:
+                    navigate("/");
+                }
+              }
+            }
+          };
+          
+          // Use setTimeout to prevent deadlock
+          setTimeout(checkUserAndRedirect, 0);
+        }
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   // Create forms with React Hook Form + Zod
@@ -124,10 +172,12 @@ const Register = () => {
   const previousStep = () => {
     if (step === 2) {
       setStep(1);
+      setFormError(null);
     }
   };
 
   const onSubmit = async (data) => {
+    setFormError(null);
     // Set isVerifying to true
     setIsVerifying(true);
     
@@ -160,6 +210,7 @@ const Register = () => {
       setIsVerifying(false);
       
       if (!verificationResult.valid) {
+        setFormError(verificationResult.message || "Could not verify your credentials. Please check and try again.");
         toast({
           title: "Verification Failed",
           description: verificationResult.message || "Could not verify your credentials. Please check and try again.",
@@ -193,6 +244,7 @@ const Register = () => {
         
         setRegistrationComplete(true);
       } else {
+        setFormError(registrationResult.message || "An error occurred during registration.");
         toast({
           title: "Registration Failed",
           description: registrationResult.message || "An error occurred during registration.",
@@ -203,6 +255,7 @@ const Register = () => {
       setIsVerifying(false);
       setIsRegistering(false);
       console.error("Registration error:", error);
+      setFormError("An unexpected error occurred. Please try again.");
       toast({
         title: "Registration error",
         description: "An unexpected error occurred. Please try again.",
@@ -269,6 +322,13 @@ const Register = () => {
           ) : (
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="p-6 md:p-8">
+                {formError && (
+                  <Alert variant="destructive" className="mb-6">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{formError}</AlertDescription>
+                  </Alert>
+                )}
+                
                 {step === 1 && (
                   <UserTypeSelector 
                     selectedType={userType} 

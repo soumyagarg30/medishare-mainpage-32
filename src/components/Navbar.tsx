@@ -14,6 +14,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { isAuthenticated, getUser, logoutUser, UserType } from "@/utils/auth";
 import { getRedirectPath } from "@/utils/routeGuard";
+import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -24,8 +25,8 @@ const Navbar = () => {
   
   useEffect(() => {
     // Check authentication status
-    const checkAuth = () => {
-      const authenticated = isAuthenticated();
+    const checkAuth = async () => {
+      const authenticated = await isAuthenticated();
       setIsLoggedIn(authenticated);
       
       if (authenticated) {
@@ -38,8 +39,27 @@ const Navbar = () => {
     
     checkAuth();
     
-    // Check auth on storage changes (for multi-tab support)
-    window.addEventListener('storage', checkAuth);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const updateAuthState = async () => {
+          const authenticated = await isAuthenticated();
+          setIsLoggedIn(authenticated);
+          
+          if (authenticated) {
+            const user = getUser();
+            if (user) {
+              setUserType(user.userType);
+            }
+          } else {
+            setUserType(null);
+          }
+        };
+        
+        // Use setTimeout to prevent deadlock
+        setTimeout(updateAuthState, 0);
+      }
+    );
     
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -53,7 +73,7 @@ const Navbar = () => {
     
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener('storage', checkAuth);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -61,8 +81,8 @@ const Navbar = () => {
     setMenuOpen(!menuOpen);
   };
   
-  const handleLogout = () => {
-    const result = logoutUser();
+  const handleLogout = async () => {
+    const result = await logoutUser();
     
     if (result.success) {
       toast({

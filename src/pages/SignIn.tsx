@@ -14,6 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Building, HeartHandshake, Shield, LockIcon, MailIcon } from "lucide-react";
 import { UserType, isAuthenticated, loginUser } from "@/utils/auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 // Login form schema
 const loginFormSchema = z.object({
@@ -29,32 +31,78 @@ const SignIn = () => {
   const navigate = useNavigate();
   const [userType, setUserType] = useState<UserType>("donor");
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   
   // Check if user is already authenticated
   useEffect(() => {
-    if (isAuthenticated()) {
-      // Redirect to appropriate dashboard based on user type
-      const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+    const checkAuth = async () => {
+      const isAuth = await isAuthenticated();
       
-      if (user.userType) {
-        switch(user.userType) {
-          case "donor":
-            navigate("/donor-dashboard");
-            break;
-          case "ngo":
-            navigate("/ngo-dashboard");
-            break;
-          case "recipient":
-            navigate("/recipient-dashboard");
-            break;
-          case "admin":
-            navigate("/admin-dashboard");
-            break;
-          default:
-            navigate("/");
+      if (isAuth) {
+        // Redirect to appropriate dashboard based on user type
+        const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+        
+        if (user.userType) {
+          switch(user.userType) {
+            case "donor":
+              navigate("/donor-dashboard");
+              break;
+            case "ngo":
+              navigate("/ngo-dashboard");
+              break;
+            case "recipient":
+              navigate("/recipient-dashboard");
+              break;
+            case "admin":
+              navigate("/admin-dashboard");
+              break;
+            default:
+              navigate("/");
+          }
         }
       }
-    }
+    };
+    
+    checkAuth();
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN') {
+          const checkUserAndRedirect = async () => {
+            const isAuth = await isAuthenticated();
+            if (isAuth) {
+              const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
+              if (user.userType) {
+                switch(user.userType) {
+                  case "donor":
+                    navigate("/donor-dashboard");
+                    break;
+                  case "ngo":
+                    navigate("/ngo-dashboard");
+                    break;
+                  case "recipient":
+                    navigate("/recipient-dashboard");
+                    break;
+                  case "admin":
+                    navigate("/admin-dashboard");
+                    break;
+                  default:
+                    navigate("/");
+                }
+              }
+            }
+          };
+          
+          // Use setTimeout to prevent deadlock
+          setTimeout(checkUserAndRedirect, 0);
+        }
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
   
   // Create form with React Hook Form + Zod
@@ -68,6 +116,7 @@ const SignIn = () => {
 
   const onSubmit = async (data: z.infer<typeof loginFormSchema>) => {
     setIsLoading(true);
+    setFormError(null);
     
     try {
       const result = await loginUser(data.email, data.password, userType);
@@ -96,6 +145,7 @@ const SignIn = () => {
             navigate("/");
         }
       } else {
+        setFormError(result.message || "An error occurred during login.");
         toast({
           title: "Login failed",
           description: result.message || "An error occurred during login.",
@@ -104,6 +154,7 @@ const SignIn = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
+      setFormError("An unexpected error occurred. Please try again.");
       toast({
         title: "Login error",
         description: "An unexpected error occurred. Please try again.",
@@ -134,6 +185,13 @@ const SignIn = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {formError && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
+              
               <Tabs value={userType} onValueChange={(value) => setUserType(value as UserType)} className="w-full">
                 <TabsList className="grid grid-cols-4 mb-8">
                   <TabsTrigger value="donor" className="flex flex-col items-center gap-2 py-3">
