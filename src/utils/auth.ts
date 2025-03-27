@@ -155,16 +155,6 @@ export const loginUser = async (
       };
     }
     
-    // Check if the user is verified
-    if (!profileData.verified && userType !== 'admin') {
-      // Sign out if user is not verified
-      await supabase.auth.signOut();
-      return {
-        success: false,
-        message: "Your account is pending verification by an admin. Please try again later or contact support."
-      };
-    }
-    
     // Create user data object
     const userData: UserData = {
       id: data.user.id,

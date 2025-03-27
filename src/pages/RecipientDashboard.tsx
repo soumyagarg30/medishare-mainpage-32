@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -20,6 +19,7 @@ import {
   Package, 
   X
 } from "lucide-react";
+import LocationPermission from "@/components/LocationPermission";
 
 // Sample medicine list data
 const availableMedicines = [
@@ -132,6 +132,7 @@ const RecipientDashboard = () => {
   return (
     <>
       <Navbar />
+      <LocationPermission />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
           <h1 className="text-3xl font-bold text-medishare-dark mb-6">Recipient Dashboard</h1>
