@@ -33,7 +33,6 @@ const Register = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
-  const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -194,7 +193,6 @@ const Register = () => {
       
       if (registrationResult.success) {
         setRegisteredEmail(data.email);
-        setRequiresEmailConfirmation(!!registrationResult.requiresEmailConfirmation);
         
         toast({
           title: "Registration successful!",

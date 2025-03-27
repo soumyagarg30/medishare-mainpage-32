@@ -8,7 +8,6 @@ import { UserType } from "@/utils/auth";
 interface RegistrationSuccessProps {
   userType: UserType | null;
   email?: string;
-  requiresEmailConfirmation?: boolean;
 }
 
 const RegistrationSuccess = ({ userType }: RegistrationSuccessProps) => {

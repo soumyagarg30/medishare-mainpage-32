@@ -90,7 +90,7 @@ export const loginUser = async (
   email: string, 
   password: string, 
   userType: UserType
-): Promise<{success: boolean; userData?: UserData; message?: string; emailConfirmationRequired?: boolean}> => {
+): Promise<{success: boolean; userData?: UserData; message?: string}> => {
   try {
     console.log(`Attempting to login user: ${email} as ${userType}`);
     
