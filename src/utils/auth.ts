@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export type UserType = 'donor' | 'ngo' | 'recipient' | 'admin';
@@ -153,16 +152,6 @@ export const loginUser = async (
       return {
         success: false,
         message: `This account is not registered as a ${userType}. Please use the correct login type.`
-      };
-    }
-    
-    // Check if the user is verified
-    if (!profileData.verified && userType !== 'admin') {
-      // Sign out if user is not verified
-      await supabase.auth.signOut();
-      return {
-        success: false,
-        message: "Your account is pending verification by an admin. Please try again later or contact support."
       };
     }
     
