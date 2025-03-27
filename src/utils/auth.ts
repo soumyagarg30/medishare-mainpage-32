@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type UserType = 'donor' | 'ngo' | 'recipient' | 'admin';
@@ -200,22 +201,23 @@ export const loginUser = async (
  * Register a new user
  */
 export const registerUser = async (
-  userData: Partial<UserData>,
+  email: string,
   password: string,
-  verificationId: string
+  userType: UserType,
+  userData: Partial<UserData>
 ): Promise<{ success: boolean; message?: string }> => {
   try {
     const { data, error } = await supabase.auth.signUp({
-      email: userData.email || '',
+      email,
       password,
       options: {
         data: {
           name: userData.name,
-          user_type: userData.userType,
+          user_type: userType,
           organization: userData.organization,
           address: userData.address,
           phone_number: userData.phoneNumber,
-          verification_id: verificationId,
+          verification_id: userData.verificationId,
           department: userData.department
         }
       }
