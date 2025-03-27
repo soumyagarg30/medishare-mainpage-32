@@ -100,7 +100,39 @@ export const loginUser = async (
     });
     
     if (error) {
-      throw error;
+      // Handle "Email not confirmed" error
+      if (error.message === "Email not confirmed" || error.code === "email_not_confirmed") {
+        console.log("Email not confirmed, attempting to confirm manually...");
+        
+        // Try to get user by email and confirm
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: null
+          }
+        });
+        
+        if (signUpError) {
+          console.error("Error during sign up:", signUpError);
+          throw error; // Throw original error if sign up fails
+        }
+        
+        // Try signing in again after sign up attempt
+        const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (retryError) {
+          throw retryError;
+        }
+        
+        data.user = retryData.user;
+        data.session = retryData.session;
+      } else {
+        throw error;
+      }
     }
     
     if (!data.user || !data.session) {

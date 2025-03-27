@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -226,7 +227,12 @@ const SignIn = () => {
                       className="w-full bg-medishare-orange hover:bg-medishare-gold"
                       disabled={isLoading}
                     >
-                      {isLoading ? "Signing in..." : "Sign In"}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : "Sign In"}
                     </Button>
                   </form>
                 </Form>
