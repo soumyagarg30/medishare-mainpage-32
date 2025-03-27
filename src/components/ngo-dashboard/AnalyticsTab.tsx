@@ -1,9 +1,11 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import DonationChart from "@/components/charts/DonationChart";
-import DistributionChart from "@/components/charts/DistributionChart";
-import MedicineCategoryChart from "@/components/charts/MedicineCategoryChart";
+import { 
+  DonationChart, 
+  DistributionChart, 
+  MedicineCategoryChart 
+} from "@/components/charts";
 
 const AnalyticsTab = () => {
   return (
@@ -14,7 +16,7 @@ const AnalyticsTab = () => {
         </CardHeader>
         <CardContent>
           <div className="h-80">
-            <DonationChart title="Monthly Donations" />
+            <DonationChart />
           </div>
         </CardContent>
       </Card>
@@ -26,7 +28,7 @@ const AnalyticsTab = () => {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <MedicineCategoryChart title="Medicine Distribution by Category" />
+              <MedicineCategoryChart />
             </div>
           </CardContent>
         </Card>
@@ -37,7 +39,7 @@ const AnalyticsTab = () => {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <DistributionChart title="Medicine Distribution Over Time" />
+              <DistributionChart />
             </div>
           </CardContent>
         </Card>
