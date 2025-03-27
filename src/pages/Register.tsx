@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -186,10 +185,8 @@ const Register = () => {
         phoneNumber: data.phoneNumber,
         address: data.address,
         department: data.department,
-        verificationId: verificationId
       };
       
-      // Fix: Remove the 4th argument (userType) as it's already included in userData
       const registrationResult = await registerUser(userData, data.password, verificationId);
       
       setIsRegistering(false);
