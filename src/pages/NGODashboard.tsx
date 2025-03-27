@@ -1,18 +1,11 @@
-
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import LocationPermission from "@/components/LocationPermission";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
-import DonationChart from "@/components/charts/DonationChart";
-import DistributionChart from "@/components/charts/DistributionChart";
-import ImpactChart from "@/components/charts/ImpactChart";
-import DonorsMap from "@/components/maps/DonorsMap";
+import WelcomeMessage from "@/components/WelcomeMessage";
+import DashboardUserInfo from "@/components/DashboardUserInfo";
+import { getUser, UserData, isAuthenticated } from "@/utils/auth";
+import { useNavigate } from "react-router-dom";
 import { 
   UserCircle,
   Package,
@@ -119,28 +112,40 @@ const impactData = {
 
 const NGODashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [medicineType, setMedicineType] = useState("all");
-  
-  const filteredMedicines = availableMedicines.filter(medicine => 
-    medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (medicineType === "all" || medicine.name.toLowerCase().includes(medicineType.toLowerCase()))
-  );
-  
-  const handleRequestMedicine = (medicine) => {
-    toast({
-      title: "Medicine Requested",
-      description: `Your request for ${medicine.name} has been sent to ${medicine.donor}.`,
-    });
-  };
-  
+  const [user, setUser] = useState<UserData | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isAuth = await isAuthenticated();
+      
+      if (!isAuth) {
+        navigate("/sign-in");
+        return;
+      }
+      
+      const userData = getUser();
+      if (!userData || userData.userType !== "ngo") {
+        navigate("/sign-in");
+        return;
+      }
+      
+      setUser(userData);
+    };
+    
+    checkAuth();
+  }, [navigate]);
+
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
   return (
     <>
       <Navbar />
-      <LocationPermission />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
-          <h1 className="text-3xl font-bold text-medishare-dark mb-6">NGO Dashboard</h1>
+          <WelcomeMessage user={user} userTypeTitle="NGO Partner" />
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
@@ -210,64 +215,7 @@ const NGODashboard = () => {
             
             <div className="md:col-span-9">
               {activeTab === "profile" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>NGO Profile</CardTitle>
-                    <CardDescription>Manage your organization's information</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label htmlFor="name" className="text-sm font-medium">Organization Name</label>
-                          <Input id="name" placeholder="NGO Name" defaultValue="Health For All NGO" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-                          <Input id="email" type="email" placeholder="contact@ngo.org" defaultValue="contact@healthforall.org" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
-                          <Input id="phone" placeholder="+91 9876543210" defaultValue="+91 9876543210" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="uid" className="text-sm font-medium">UID Number</label>
-                          <Input id="uid" placeholder="NGO12345678" defaultValue="NGO12345678" readOnly />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="address" className="text-sm font-medium">Address</label>
-                        <Textarea id="address" placeholder="123 Main St, City, State" defaultValue="45 NGO Street, Bandra, Mumbai, Maharashtra" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="description" className="text-sm font-medium">Organization Description</label>
-                        <Textarea 
-                          id="description" 
-                          placeholder="Brief description of your NGO" 
-                          defaultValue="Health For All is a non-profit organization dedicated to providing medical support to underserved communities." 
-                          className="min-h-[100px]"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label htmlFor="founder" className="text-sm font-medium">Founder</label>
-                          <Input id="founder" placeholder="Founder Name" defaultValue="Dr. Jane Doe" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="founded" className="text-sm font-medium">Year Founded</label>
-                          <Input id="founded" placeholder="YYYY" defaultValue="2010" />
-                        </div>
-                      </div>
-                      
-                      <Button type="button" className="bg-medishare-blue hover:bg-medishare-blue/90">
-                        Save Changes
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
+                <DashboardUserInfo user={user} userTypeTitle="NGO Partner" />
               )}
               
               {activeTab === "available" && (
