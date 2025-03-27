@@ -100,14 +100,6 @@ export const loginUser = async (
     });
     
     if (error) {
-      // Check if the error is about email confirmation
-      if (error.message.includes('Email not confirmed')) {
-        return {
-          success: false,
-          emailConfirmationRequired: true,
-          message: "Please confirm your email address before signing in. Check your inbox for a confirmation link."
-        };
-      }
       throw error;
     }
     
@@ -181,7 +173,7 @@ export const registerUser = async (
   userData: Partial<UserData>,
   password: string,
   verificationId: string
-): Promise<{success: boolean; message?: string; requiresEmailConfirmation?: boolean}> => {
+): Promise<{success: boolean; message?: string}> => {
   try {
     console.log("Registering user:", userData);
     
@@ -204,13 +196,13 @@ export const registerUser = async (
       department: userData.department
     };
     
-    // Register user with Supabase
+    // Register user with Supabase with emailRedirectTo set to null to bypass email confirmation
     const { data, error } = await supabase.auth.signUp({
       email: userData.email,
       password,
       options: {
         data: metadata,
-        emailRedirectTo: window.location.origin + '/sign-in'
+        emailRedirectTo: null
       }
     });
     
@@ -230,8 +222,7 @@ export const registerUser = async (
     
     return {
       success: true,
-      requiresEmailConfirmation: true,
-      message: "Registration successful! Please check your email to confirm your account."
+      message: "Registration successful! You can now sign in with your credentials."
     };
   } catch (error: any) {
     console.error("Registration error:", error);

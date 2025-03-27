@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -36,13 +35,11 @@ const Register = () => {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
-  // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = async () => {
       const isAuth = await isAuthenticated();
       
       if (isAuth) {
-        // Redirect to appropriate dashboard based on user type
         const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
         
         if (user.userType) {
@@ -69,7 +66,6 @@ const Register = () => {
     checkAuth();
   }, [navigate]);
 
-  // Create forms with React Hook Form + Zod
   const donorForm = useForm({
     resolver: zodResolver(donorFormSchema),
     defaultValues: {
@@ -141,11 +137,9 @@ const Register = () => {
 
   const onSubmit = async (data) => {
     setFormError(null);
-    // Set isVerifying to true
     setIsVerifying(true);
     
     try {
-      // Verify ID based on user type
       let verificationResult;
       let verificationId = "";
       
@@ -182,7 +176,6 @@ const Register = () => {
         return;
       }
       
-      // Proceed with registration if verification successful
       setIsRegistering(true);
       
       const userData = {
@@ -230,7 +223,6 @@ const Register = () => {
     }
   };
 
-  // Get appropriate form based on user type
   const getActiveForm = () => {
     switch (userType) {
       case "donor":
@@ -287,7 +279,6 @@ const Register = () => {
             <RegistrationSuccess 
               userType={userType} 
               email={registeredEmail || undefined}
-              requiresEmailConfirmation={requiresEmailConfirmation}
             />
           ) : (
             <div className="bg-white rounded-xl shadow-md overflow-hidden">

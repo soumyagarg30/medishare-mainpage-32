@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -17,7 +16,6 @@ import { UserType, isAuthenticated, loginUser, resendConfirmationEmail } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 
-// Login form schema
 const loginFormSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
@@ -31,18 +29,13 @@ const SignIn = () => {
   const navigate = useNavigate();
   const [userType, setUserType] = useState<UserType>("donor");
   const [isLoading, setIsLoading] = useState(false);
-  const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
-  const [currentEmail, setCurrentEmail] = useState("");
   
-  // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = async () => {
       const isAuth = await isAuthenticated();
       
       if (isAuth) {
-        // Redirect to appropriate dashboard based on user type
         const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
         
         if (user.userType) {
@@ -69,7 +62,6 @@ const SignIn = () => {
     checkAuth();
   }, [navigate]);
   
-  // Create form with React Hook Form + Zod
   const form = useForm({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
@@ -78,32 +70,9 @@ const SignIn = () => {
     },
   });
 
-  const handleResendConfirmation = async () => {
-    if (!currentEmail) return;
-    
-    setIsResendingEmail(true);
-    const result = await resendConfirmationEmail(currentEmail);
-    setIsResendingEmail(false);
-    
-    if (result.success) {
-      toast({
-        title: "Email Sent",
-        description: result.message
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: result.message,
-        variant: "destructive"
-      });
-    }
-  };
-
   const onSubmit = async (data: z.infer<typeof loginFormSchema>) => {
     setIsLoading(true);
     setFormError(null);
-    setEmailConfirmationRequired(false);
-    setCurrentEmail(data.email);
     
     try {
       const result = await loginUser(data.email, data.password, userType);
@@ -114,7 +83,6 @@ const SignIn = () => {
           description: `Welcome back to MediShare as a ${userType}.`,
         });
         
-        // Navigate to appropriate dashboard based on user type
         switch(userType) {
           case "donor":
             navigate("/donor-dashboard");
@@ -132,9 +100,6 @@ const SignIn = () => {
             navigate("/");
         }
       } else {
-        if (result.emailConfirmationRequired) {
-          setEmailConfirmationRequired(true);
-        }
         setFormError(result.message || "An error occurred during login.");
         toast({
           title: "Login failed",
@@ -176,35 +141,9 @@ const SignIn = () => {
             </CardHeader>
             <CardContent>
               {formError && (
-                <Alert variant={emailConfirmationRequired ? "warning" : "destructive"} className="mb-6">
-                  <AlertTitle>{emailConfirmationRequired ? "Email Confirmation Required" : "Error"}</AlertTitle>
-                  <AlertDescription>
-                    {formError}
-                    
-                    {emailConfirmationRequired && (
-                      <div className="mt-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleResendConfirmation}
-                          disabled={isResendingEmail}
-                          className="flex items-center gap-2"
-                        >
-                          {isResendingEmail ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Mail className="h-4 w-4" />
-                              Resend Confirmation Email
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    )}
-                  </AlertDescription>
+                <Alert variant="destructive" className="mb-6">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
                 </Alert>
               )}
               
