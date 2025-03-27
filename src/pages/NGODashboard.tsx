@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -6,9 +7,11 @@ import WelcomeMessage from "@/components/WelcomeMessage";
 import DashboardUserInfo from "@/components/DashboardUserInfo";
 import { getUser, UserData, isAuthenticated } from "@/utils/auth";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   UserCircle,
-  Package,
+  Package2,
   Search,
   Clock,
   Bell,
@@ -19,6 +22,7 @@ import {
   Users
 } from "lucide-react";
 
+// Sample available medicines data
 const availableMedicines = [
   {
     id: "MED001",
@@ -46,6 +50,7 @@ const availableMedicines = [
   }
 ];
 
+// Sample inventory items
 const inventoryItems = [
   {
     id: "INV001",
@@ -76,6 +81,7 @@ const inventoryItems = [
   }
 ];
 
+// Sample distribution history
 const distributionHistory = [
   {
     id: "DIST001",
@@ -103,6 +109,7 @@ const distributionHistory = [
   }
 ];
 
+// Sample impact data
 const impactData = {
   totalMedicinesReceived: 1250,
   totalMedicinesDistributed: 850,
@@ -113,6 +120,8 @@ const impactData = {
 const NGODashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [user, setUser] = useState<UserData | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableUserData, setEditableUserData] = useState<Partial<UserData>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -131,10 +140,49 @@ const NGODashboard = () => {
       }
       
       setUser(userData);
+      setEditableUserData({
+        name: userData.name,
+        organization: userData.organization,
+        address: userData.address,
+        phoneNumber: userData.phoneNumber
+      });
     };
     
     checkAuth();
   }, [navigate]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditableUserData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    // In a real application, this would send the updated profile data to the backend
+    if (user) {
+      const updatedUser = { 
+        ...user, 
+        ...editableUserData 
+      };
+      
+      // Update local storage for demo purposes
+      // In a real app, you would make an API call here
+      localStorage.setItem('medishare_user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setEditableUserData({
+        name: user.name,
+        organization: user.organization,
+        address: user.address,
+        phoneNumber: user.phoneNumber
+      });
+    }
+    setIsEditing(false);
+  };
 
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -170,7 +218,7 @@ const NGODashboard = () => {
                       onClick={() => setActiveTab("inventory")} 
                       className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "inventory" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
                     >
-                      <Package size={18} />
+                      <Package2 size={18} />
                       <span>Inventory Management</span>
                     </button>
                     <button 
@@ -215,7 +263,119 @@ const NGODashboard = () => {
             
             <div className="md:col-span-9">
               {activeTab === "profile" && (
-                <DashboardUserInfo user={user} userTypeTitle="NGO Partner" />
+                <Card className="mb-6">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle className="text-xl">NGO Partner Information</CardTitle>
+                        <CardDescription>Your account details</CardDescription>
+                      </div>
+                      {!isEditing ? (
+                        <Button 
+                          onClick={() => setIsEditing(true)}
+                          variant="outline"
+                        >
+                          Edit Profile
+                        </Button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={handleCancelEdit}
+                            variant="outline"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleSaveProfile}
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Name</p>
+                        {isEditing ? (
+                          <Input
+                            name="name"
+                            value={editableUserData.name || ""}
+                            onChange={handleInputChange}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="text-base">{user.name || "Not provided"}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Email</p>
+                        <p className="text-base">{user.email}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Organization</p>
+                        {isEditing ? (
+                          <Input
+                            name="organization"
+                            value={editableUserData.organization || ""}
+                            onChange={handleInputChange}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="text-base">{user.organization || "Not provided"}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Address</p>
+                        {isEditing ? (
+                          <Input
+                            name="address"
+                            value={editableUserData.address || ""}
+                            onChange={handleInputChange}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="text-base">{user.address || "Not provided"}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                        {isEditing ? (
+                          <Input
+                            name="phoneNumber"
+                            value={editableUserData.phoneNumber || ""}
+                            onChange={handleInputChange}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="text-base">{user.phoneNumber || "Not provided"}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">UID Number</p>
+                        <p className="text-base">{user.verificationId || "Not provided"}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Account Created</p>
+                        <p className="text-base">{new Date(user.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Verification Status</p>
+                        <p className={`text-base ${user.verified ? "text-green-600" : "text-amber-600"}`}>
+                          {user.verified ? "Verified" : "Pending Verification"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
               
               {activeTab === "available" && (
@@ -225,82 +385,7 @@ const NGODashboard = () => {
                     <CardDescription>Browse and request medicines from donors</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
-                            <Input 
-                              placeholder="Search available medicines..." 
-                              className="pl-10" 
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <div className="w-full md:w-1/3">
-                          <Select value={medicineType} onValueChange={setMedicineType}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Filter by type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Types</SelectItem>
-                              <SelectItem value="paracetamol">Paracetamol</SelectItem>
-                              <SelectItem value="insulin">Insulin</SelectItem>
-                              <SelectItem value="antibiotic">Antibiotics</SelectItem>
-                              <SelectItem value="vitamin">Vitamins</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {filteredMedicines.length > 0 ? (
-                          filteredMedicines.map((medicine) => (
-                            <div key={medicine.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                              <div className="flex flex-col md:flex-row justify-between gap-4">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="font-medium text-lg">{medicine.name}</h3>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      medicine.status === "Available" 
-                                        ? "bg-green-100 text-green-800" 
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}>
-                                      {medicine.status}
-                                    </span>
-                                  </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Quantity:</span> {medicine.quantity}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Expiry Date:</span> {medicine.expiryDate}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Donor:</span> {medicine.donor}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center">
-                                  <Button 
-                                    className="bg-medishare-orange hover:bg-medishare-gold w-full md:w-auto"
-                                    onClick={() => handleRequestMedicine(medicine)}
-                                    disabled={medicine.status !== "Available"}
-                                  >
-                                    Request Medicine
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-12">
-                            <p className="text-gray-500">No medicines found matching your search.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <p>This section is under development. Please check back later.</p>
                   </CardContent>
                 </Card>
               )}
@@ -432,68 +517,7 @@ const NGODashboard = () => {
                     <CardDescription>Track the status of your medicine requests</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-lg">Paracetamol</h3>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                Approved
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Quantity:</span> 200 tablets
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Donor:</span> John Doe Pharmaceuticals
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Request Date:</span> 2023-12-01
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Expected Delivery:</span> 2023-12-10
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <Button className="bg-medishare-blue hover:bg-medishare-blue/90">
-                              Track Delivery
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-lg">Insulin</h3>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Pending
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Quantity:</span> 20 vials
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Donor:</span> MediCare Hospital
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                <span className="font-medium">Request Date:</span> 2023-12-05
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <Button variant="outline">
-                              Cancel Request
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <p>This section is under development. Please check back later.</p>
                   </CardContent>
                 </Card>
               )}
@@ -543,10 +567,7 @@ const NGODashboard = () => {
                       </Card>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <DistributionChart title="Medicine Distribution Trends" />
-                      <ImpactChart title="Medicine Categories" />
-                    </div>
+                    <p>Detailed impact charts will be available soon.</p>
                   </CardContent>
                 </Card>
               )}
@@ -558,65 +579,7 @@ const NGODashboard = () => {
                     <CardDescription>Find donors in your area that have medicines available</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      <DonorsMap title="" className="border-0 shadow-none" />
-                      
-                      <div className="space-y-4">
-                        <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                          <div className="flex justify-between">
-                            <div>
-                              <h3 className="font-medium text-lg">John Doe Pharmaceuticals</h3>
-                              <p className="text-sm text-gray-600">
-                                <MapPin className="h-4 w-4 inline mr-1" />
-                                2.3 km away - Bandra, Mumbai
-                              </p>
-                              <p className="text-sm text-gray-600 mt-2">
-                                Available Medicines: Antibiotics, Painkillers, Insulin
-                              </p>
-                            </div>
-                            <Button className="h-9 bg-medishare-orange hover:bg-medishare-gold">
-                              Contact
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                          <div className="flex justify-between">
-                            <div>
-                              <h3 className="font-medium text-lg">MediCare Hospital</h3>
-                              <p className="text-sm text-gray-600">
-                                <MapPin className="h-4 w-4 inline mr-1" />
-                                4.1 km away - Andheri, Mumbai
-                              </p>
-                              <p className="text-sm text-gray-600 mt-2">
-                                Available Medicines: Asthma Inhalers, Diabetes Medication
-                              </p>
-                            </div>
-                            <Button className="h-9 bg-medishare-orange hover:bg-medishare-gold">
-                              Contact
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                          <div className="flex justify-between">
-                            <div>
-                              <h3 className="font-medium text-lg">HealthPlus Clinic</h3>
-                              <p className="text-sm text-gray-600">
-                                <MapPin className="h-4 w-4 inline mr-1" />
-                                3.8 km away - Juhu, Mumbai
-                              </p>
-                              <p className="text-sm text-gray-600 mt-2">
-                                Available Medicines: Vitamin C, Antibiotic Ointment
-                              </p>
-                            </div>
-                            <Button className="h-9 bg-medishare-orange hover:bg-medishare-gold">
-                              Contact
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <p>Donors map and listing will be available soon.</p>
                   </CardContent>
                 </Card>
               )}
@@ -645,7 +608,7 @@ const NGODashboard = () => {
                       <div className="p-4 border rounded-lg">
                         <div className="flex items-start gap-3">
                           <div className="bg-green-100 p-2 rounded-full">
-                            <Package size={18} className="text-green-500" />
+                            <Package2 size={18} className="text-green-500" />
                           </div>
                           <div>
                             <h4 className="font-medium">New Medicine Available</h4>

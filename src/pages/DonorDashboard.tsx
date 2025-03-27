@@ -1,14 +1,16 @@
+
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import WelcomeMessage from "@/components/WelcomeMessage";
-import DashboardUserInfo from "@/components/DashboardUserInfo";
 import { getUser, UserData, isAuthenticated } from "@/utils/auth";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   UserCircle,
-  Donate,
+  Gift,
   Clock,
   FileText,
   Coins,
@@ -54,6 +56,8 @@ const impactData = {
 const DonorDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [user, setUser] = useState<UserData | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableUserData, setEditableUserData] = useState<Partial<UserData>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,10 +76,49 @@ const DonorDashboard = () => {
       }
       
       setUser(userData);
+      setEditableUserData({
+        name: userData.name,
+        organization: userData.organization,
+        address: userData.address,
+        phoneNumber: userData.phoneNumber
+      });
     };
     
     checkAuth();
   }, [navigate]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditableUserData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    // In a real application, this would send the updated profile data to the backend
+    if (user) {
+      const updatedUser = { 
+        ...user, 
+        ...editableUserData 
+      };
+      
+      // Update local storage for demo purposes
+      // In a real app, you would make an API call here
+      localStorage.setItem('medishare_user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setEditableUserData({
+        name: user.name,
+        organization: user.organization,
+        address: user.address,
+        phoneNumber: user.phoneNumber
+      });
+    }
+    setIsEditing(false);
+  };
 
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -105,7 +148,7 @@ const DonorDashboard = () => {
                       onClick={() => setActiveTab("donate")} 
                       className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "donate" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
                     >
-                      <Donate size={18} />
+                      <Gift size={18} />
                       <span>Donate Medicines</span>
                     </button>
                     <button 
@@ -144,7 +187,127 @@ const DonorDashboard = () => {
             {/* Main Content */}
             <div className="md:col-span-9">
               {activeTab === "profile" && (
-                <DashboardUserInfo user={user} userTypeTitle="Donor" />
+                <Card className="mb-6">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle className="text-xl">Donor Information</CardTitle>
+                        <CardDescription>Your account details</CardDescription>
+                      </div>
+                      {!isEditing ? (
+                        <Button 
+                          onClick={() => setIsEditing(true)}
+                          variant="outline"
+                        >
+                          Edit Profile
+                        </Button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={handleCancelEdit}
+                            variant="outline"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleSaveProfile}
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Name</p>
+                        {isEditing ? (
+                          <Input
+                            name="name"
+                            value={editableUserData.name || ""}
+                            onChange={handleInputChange}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="text-base">{user.name || "Not provided"}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Email</p>
+                        <p className="text-base">{user.email}</p>
+                      </div>
+                      
+                      {(user.organization || isEditing) && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Organization</p>
+                          {isEditing ? (
+                            <Input
+                              name="organization"
+                              value={editableUserData.organization || ""}
+                              onChange={handleInputChange}
+                              className="mt-1"
+                            />
+                          ) : (
+                            <p className="text-base">{user.organization || "Not provided"}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {(user.address || isEditing) && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Address</p>
+                          {isEditing ? (
+                            <Input
+                              name="address"
+                              value={editableUserData.address || ""}
+                              onChange={handleInputChange}
+                              className="mt-1"
+                            />
+                          ) : (
+                            <p className="text-base">{user.address || "Not provided"}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {(user.phoneNumber || isEditing) && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                          {isEditing ? (
+                            <Input
+                              name="phoneNumber"
+                              value={editableUserData.phoneNumber || ""}
+                              onChange={handleInputChange}
+                              className="mt-1"
+                            />
+                          ) : (
+                            <p className="text-base">{user.phoneNumber || "Not provided"}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {user.verificationId && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">GST Number</p>
+                          <p className="text-base">{user.verificationId}</p>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Account Created</p>
+                        <p className="text-base">{new Date(user.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Verification Status</p>
+                        <p className={`text-base ${user.verified ? "text-green-600" : "text-amber-600"}`}>
+                          {user.verified ? "Verified" : "Pending Verification"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
               
               {activeTab === "donate" && (
@@ -222,7 +385,7 @@ const DonorDashboard = () => {
                       
                       <Card className="bg-orange-50 border-orange-200">
                         <CardBody className="flex flex-col items-center justify-center p-4">
-                          <Donate className="h-6 w-6 text-orange-600 mb-2" />
+                          <Gift className="h-6 w-6 text-orange-600 mb-2" />
                           <CardTitle className="text-2xl font-bold text-orange-700">{impactData.ngosSupported}</CardTitle>
                           <CardDescription className="text-sm text-gray-600">NGOs Supported</CardDescription>
                         </CardBody>
