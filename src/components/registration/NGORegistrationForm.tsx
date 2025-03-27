@@ -68,7 +68,7 @@ const NGORegistrationForm = ({ form, isVerifying, isRegistering }: NGORegistrati
                 <Input placeholder="Enter your NGO UID or registration number" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
-              <p className="text-xs text-gray-500 mt-1">For testing, use IDs containing NGO, REG, or starting with IN</p>
+              <p className="text-xs text-gray-500 mt-1">Enter your official NGO registration number</p>
             </FormItem>
           )}
         />

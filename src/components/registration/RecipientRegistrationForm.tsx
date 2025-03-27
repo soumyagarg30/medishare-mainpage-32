@@ -68,7 +68,7 @@ const RecipientRegistrationForm = ({ form, isVerifying, isRegistering }: Recipie
                 <Input placeholder="Enter your DigiLocker ID" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
-              <p className="text-xs text-gray-500 mt-1">For testing, use IDs starting with DL or containing AADHAAR</p>
+              <p className="text-xs text-gray-500 mt-1">Enter your DigiLocker account ID or linked email</p>
             </FormItem>
           )}
         />

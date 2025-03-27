@@ -68,7 +68,7 @@ const DonorRegistrationForm = ({ form, isVerifying, isRegistering }: DonorRegist
                 <Input placeholder="Enter your 15-digit GST ID" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
-              <p className="text-xs text-gray-500 mt-1">For testing, use IDs starting with 27, 07, or 33</p>
+              <p className="text-xs text-gray-500 mt-1">Enter your 15-character GST Identification Number</p>
             </FormItem>
           )}
         />

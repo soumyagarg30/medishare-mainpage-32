@@ -68,7 +68,7 @@ const AdminRegistrationForm = ({ form, isVerifying, isRegistering }: AdminRegist
                 <Input placeholder="Enter admin verification code" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
-              <p className="text-xs text-gray-500 mt-1">For testing, use ADMIN123456, SUPER987654, or TECH456789</p>
+              <p className="text-xs text-gray-500 mt-1">Enter your official admin authorization code</p>
             </FormItem>
           )}
         />
