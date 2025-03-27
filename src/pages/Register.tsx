@@ -33,6 +33,8 @@ const Register = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
   // Check if user is already authenticated
   useEffect(() => {
@@ -65,45 +67,6 @@ const Register = () => {
     };
     
     checkAuth();
-    
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN') {
-          const checkUserAndRedirect = async () => {
-            const isAuth = await isAuthenticated();
-            if (isAuth) {
-              const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
-              if (user.userType) {
-                switch(user.userType) {
-                  case "donor":
-                    navigate("/donor-dashboard");
-                    break;
-                  case "ngo":
-                    navigate("/ngo-dashboard");
-                    break;
-                  case "recipient":
-                    navigate("/recipient-dashboard");
-                    break;
-                  case "admin":
-                    navigate("/admin-dashboard");
-                    break;
-                  default:
-                    navigate("/");
-                }
-              }
-            }
-          };
-          
-          // Use setTimeout to prevent deadlock
-          setTimeout(checkUserAndRedirect, 0);
-        }
-      }
-    );
-    
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [navigate]);
 
   // Create forms with React Hook Form + Zod
@@ -237,9 +200,12 @@ const Register = () => {
       setIsRegistering(false);
       
       if (registrationResult.success) {
+        setRegisteredEmail(data.email);
+        setRequiresEmailConfirmation(!!registrationResult.requiresEmailConfirmation);
+        
         toast({
           title: "Registration successful!",
-          description: "Your account has been created. Verification is in process.",
+          description: registrationResult.message || "Your account has been created.",
         });
         
         setRegistrationComplete(true);
@@ -318,7 +284,11 @@ const Register = () => {
           </div>
 
           {registrationComplete ? (
-            <RegistrationSuccess userType={userType} />
+            <RegistrationSuccess 
+              userType={userType} 
+              email={registeredEmail || undefined}
+              requiresEmailConfirmation={requiresEmailConfirmation}
+            />
           ) : (
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="p-6 md:p-8">

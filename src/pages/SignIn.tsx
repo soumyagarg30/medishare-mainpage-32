@@ -12,8 +12,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Building, HeartHandshake, Shield, LockIcon, MailIcon } from "lucide-react";
-import { UserType, isAuthenticated, loginUser } from "@/utils/auth";
+import { UserPlus, Building, HeartHandshake, Shield, LockIcon, MailIcon, Mail, Loader2 } from "lucide-react";
+import { UserType, isAuthenticated, loginUser, resendConfirmationEmail } from "@/utils/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,7 +31,10 @@ const SignIn = () => {
   const navigate = useNavigate();
   const [userType, setUserType] = useState<UserType>("donor");
   const [isLoading, setIsLoading] = useState(false);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState("");
   
   // Check if user is already authenticated
   useEffect(() => {
@@ -64,45 +67,6 @@ const SignIn = () => {
     };
     
     checkAuth();
-    
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN') {
-          const checkUserAndRedirect = async () => {
-            const isAuth = await isAuthenticated();
-            if (isAuth) {
-              const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
-              if (user.userType) {
-                switch(user.userType) {
-                  case "donor":
-                    navigate("/donor-dashboard");
-                    break;
-                  case "ngo":
-                    navigate("/ngo-dashboard");
-                    break;
-                  case "recipient":
-                    navigate("/recipient-dashboard");
-                    break;
-                  case "admin":
-                    navigate("/admin-dashboard");
-                    break;
-                  default:
-                    navigate("/");
-                }
-              }
-            }
-          };
-          
-          // Use setTimeout to prevent deadlock
-          setTimeout(checkUserAndRedirect, 0);
-        }
-      }
-    );
-    
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [navigate]);
   
   // Create form with React Hook Form + Zod
@@ -114,9 +78,32 @@ const SignIn = () => {
     },
   });
 
+  const handleResendConfirmation = async () => {
+    if (!currentEmail) return;
+    
+    setIsResendingEmail(true);
+    const result = await resendConfirmationEmail(currentEmail);
+    setIsResendingEmail(false);
+    
+    if (result.success) {
+      toast({
+        title: "Email Sent",
+        description: result.message
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: result.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const onSubmit = async (data: z.infer<typeof loginFormSchema>) => {
     setIsLoading(true);
     setFormError(null);
+    setEmailConfirmationRequired(false);
+    setCurrentEmail(data.email);
     
     try {
       const result = await loginUser(data.email, data.password, userType);
@@ -145,6 +132,9 @@ const SignIn = () => {
             navigate("/");
         }
       } else {
+        if (result.emailConfirmationRequired) {
+          setEmailConfirmationRequired(true);
+        }
         setFormError(result.message || "An error occurred during login.");
         toast({
           title: "Login failed",
@@ -186,9 +176,35 @@ const SignIn = () => {
             </CardHeader>
             <CardContent>
               {formError && (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{formError}</AlertDescription>
+                <Alert variant={emailConfirmationRequired ? "warning" : "destructive"} className="mb-6">
+                  <AlertTitle>{emailConfirmationRequired ? "Email Confirmation Required" : "Error"}</AlertTitle>
+                  <AlertDescription>
+                    {formError}
+                    
+                    {emailConfirmationRequired && (
+                      <div className="mt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleResendConfirmation}
+                          disabled={isResendingEmail}
+                          className="flex items-center gap-2"
+                        >
+                          {isResendingEmail ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="h-4 w-4" />
+                              Resend Confirmation Email
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
               

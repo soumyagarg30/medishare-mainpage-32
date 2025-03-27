@@ -90,7 +90,7 @@ export const loginUser = async (
   email: string, 
   password: string, 
   userType: UserType
-): Promise<{success: boolean; userData?: UserData; message?: string}> => {
+): Promise<{success: boolean; userData?: UserData; message?: string; emailConfirmationRequired?: boolean}> => {
   try {
     console.log(`Attempting to login user: ${email} as ${userType}`);
     
@@ -100,6 +100,14 @@ export const loginUser = async (
     });
     
     if (error) {
+      // Check if the error is about email confirmation
+      if (error.message.includes('Email not confirmed')) {
+        return {
+          success: false,
+          emailConfirmationRequired: true,
+          message: "Please confirm your email address before signing in. Check your inbox for a confirmation link."
+        };
+      }
       throw error;
     }
     
@@ -173,7 +181,7 @@ export const registerUser = async (
   userData: Partial<UserData>,
   password: string,
   verificationId: string
-): Promise<{success: boolean; userData?: UserData; message?: string}> => {
+): Promise<{success: boolean; message?: string; requiresEmailConfirmation?: boolean}> => {
   try {
     console.log("Registering user:", userData);
     
@@ -196,12 +204,13 @@ export const registerUser = async (
       department: userData.department
     };
     
-    // Register user with Supabase
+    // Register user with Supabase - but don't sign them in automatically
     const { data, error } = await supabase.auth.signUp({
       email: userData.email,
       password,
       options: {
-        data: metadata
+        data: metadata,
+        emailRedirectTo: window.location.origin + '/sign-in'
       }
     });
     
@@ -216,34 +225,49 @@ export const registerUser = async (
       };
     }
     
-    // Create user data object
-    const newUser: UserData = {
-      id: data.user.id,
-      email: data.user.email || '',
-      name: userData.name || userData.email?.split('@')[0] || '',
-      userType: userData.userType,
-      verified: false, // Will require verification
-      createdAt: new Date().toISOString(),
-      organization: userData.organization,
-      address: userData.address,
-      phoneNumber: userData.phoneNumber,
-      verificationId: verificationId,
-      department: userData.department,
-    };
-    
-    // Save user data
-    saveUser(newUser);
+    // Important: We don't want to save the user data to local storage after registration
+    // We should only do that after they confirm their email and log in
     
     return {
       success: true,
-      userData: newUser,
-      message: "Registration successful! Your account is pending verification."
+      requiresEmailConfirmation: true,
+      message: "Registration successful! Please check your email to confirm your account."
     };
   } catch (error: any) {
     console.error("Registration error:", error);
     return {
       success: false,
       message: error.message || "An error occurred during registration."
+    };
+  }
+};
+
+/**
+ * Resend confirmation email
+ */
+export const resendConfirmationEmail = async (email: string): Promise<{success: boolean; message: string}> => {
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: window.location.origin + '/sign-in'
+      }
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return {
+      success: true,
+      message: "Confirmation email has been resent. Please check your inbox."
+    };
+  } catch (error: any) {
+    console.error("Error resending confirmation email:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to resend confirmation email."
     };
   }
 };
