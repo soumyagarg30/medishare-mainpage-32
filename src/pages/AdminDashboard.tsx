@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,146 +20,202 @@ import {
   Eye,
   UserCheck,
   UserX,
-  Search
+  Search,
+  Loader2
 } from "lucide-react";
-
-// Sample user management data
-const userRequests = [
-  {
-    id: "USER001",
-    name: "John Doe Pharmaceuticals",
-    type: "Donor",
-    email: "contact@johndoepharma.com",
-    verification: "GST: 22AAAAA0000A1Z5",
-    registeredDate: "2023-12-01",
-    status: "Pending"
-  },
-  {
-    id: "USER002",
-    name: "Health For All NGO",
-    type: "NGO",
-    email: "contact@healthforall.org",
-    verification: "UID: NGO12345678",
-    registeredDate: "2023-12-02",
-    status: "Pending"
-  },
-  {
-    id: "USER003",
-    name: "City Hospital",
-    type: "Recipient",
-    email: "admin@cityhospital.org",
-    verification: "DigiLocker: DL12345678",
-    registeredDate: "2023-12-03",
-    status: "Pending"
-  },
-];
-
-const approvedUsers = [
-  {
-    id: "USER004",
-    name: "MediCare Hospital",
-    type: "Donor",
-    email: "contact@medicare.com",
-    verification: "GST: 22BBBBB0000B1Z5",
-    registeredDate: "2023-11-15",
-    status: "Approved"
-  },
-  {
-    id: "USER005",
-    name: "Medical Aid Foundation",
-    type: "NGO",
-    email: "info@medicalaid.org",
-    verification: "UID: NGO87654321",
-    registeredDate: "2023-11-20",
-    status: "Approved"
-  }
-];
-
-// Sample medicine approval data
-const medicineApprovals = [
-  {
-    id: "MED001",
-    name: "Paracetamol",
-    quantity: "500 tablets",
-    donor: "John Doe Pharmaceuticals",
-    expiryDate: "2024-12-31",
-    donationDate: "2023-12-01",
-    status: "Pending"
-  },
-  {
-    id: "MED002",
-    name: "Insulin",
-    quantity: "25 vials",
-    donor: "MediCare Hospital",
-    expiryDate: "2024-06-15",
-    donationDate: "2023-12-02",
-    status: "Pending"
-  },
-  {
-    id: "MED003",
-    name: "Antibiotic Ointment",
-    quantity: "100 tubes",
-    donor: "HealthPlus Clinic",
-    expiryDate: "2025-02-28",
-    donationDate: "2023-12-03",
-    status: "Pending"
-  }
-];
-
-// Sample transaction data
-const transactionData = [
-  {
-    id: "TXN001",
-    medicine: "Paracetamol",
-    quantity: "100 tablets",
-    donor: "John Doe Pharmaceuticals",
-    ngo: "Health For All NGO",
-    recipient: "City Hospital",
-    date: "2023-12-05",
-    status: "Completed"
-  },
-  {
-    id: "TXN002",
-    medicine: "Insulin",
-    quantity: "10 vials",
-    donor: "MediCare Hospital",
-    ngo: "Medical Aid Foundation",
-    recipient: "Rural Health Camp",
-    date: "2023-12-08",
-    status: "In Progress"
-  }
-];
-
-// Sample metrics data
-const metricsData = {
-  totalUsers: 156,
-  totalDonors: 52,
-  totalNGOs: 38,
-  totalRecipients: 66,
-  totalMedicines: 845,
-  totalTransactions: 312,
-  donationsApproved: 278,
-  donationsRejected: 34
-};
+import { getUser, UserData } from "@/utils/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("users");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+  const [userRequests, setUserRequests] = useState<any[]>([]);
+  const [approvedUsers, setApprovedUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const handleApproveUser = (user) => {
-    toast({
-      title: "User Approved",
-      description: `${user.name} has been approved successfully.`,
-    });
+  useEffect(() => {
+    const user = getUser();
+    
+    // Redirect if not an admin
+    if (!user || user.userType !== "admin") {
+      navigate("/sign-in");
+      return;
+    }
+    
+    setCurrentUser(user);
+    fetchUsers();
+  }, [navigate]);
+  
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch pending users (not verified)
+      const { data: pendingData, error: pendingError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('verified', false);
+        
+      if (pendingError) throw pendingError;
+      
+      // Fetch approved users (verified)
+      const { data: approvedData, error: approvedError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('verified', true);
+        
+      if (approvedError) throw approvedError;
+      
+      // Format data for display
+      const formattedPendingUsers = pendingData.map(user => ({
+        id: user.id,
+        name: user.name || user.email.split('@')[0],
+        type: user.user_type.charAt(0).toUpperCase() + user.user_type.slice(1),
+        email: user.email,
+        verification: getVerificationDisplay(user),
+        registeredDate: new Date(user.created_at).toISOString().split('T')[0],
+        status: "Pending"
+      }));
+      
+      const formattedApprovedUsers = approvedData.map(user => ({
+        id: user.id,
+        name: user.name || user.email.split('@')[0],
+        type: user.user_type.charAt(0).toUpperCase() + user.user_type.slice(1),
+        email: user.email,
+        verification: getVerificationDisplay(user),
+        registeredDate: new Date(user.created_at).toISOString().split('T')[0],
+        status: "Approved"
+      }));
+      
+      setUserRequests(formattedPendingUsers);
+      setApprovedUsers(formattedApprovedUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error fetching user data",
+        description: "Failed to load user data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleRejectUser = (user) => {
-    toast({
-      title: "User Rejected",
-      description: `${user.name} has been rejected.`,
-    });
+  const getVerificationDisplay = (user) => {
+    switch(user.user_type) {
+      case "donor":
+        return `GST: ${user.verification_id || 'Not provided'}`;
+      case "ngo":
+        return `UID: ${user.verification_id || 'Not provided'}`;
+      case "recipient":
+        return `DigiLocker: ${user.verification_id || 'Not provided'}`;
+      case "admin":
+        return `Admin Code: ${user.verification_id || 'Not provided'}`;
+      default:
+        return `ID: ${user.verification_id || 'Not provided'}`;
+    }
   };
   
+  const handleApproveUser = async (user) => {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ verified: true })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "User Approved",
+        description: `${user.name} has been approved successfully.`,
+      });
+      
+      // Refresh user lists
+      fetchUsers();
+    } catch (error) {
+      console.error("Error approving user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to approve user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleRejectUser = async (user) => {
+    try {
+      // In a real application, you might want to delete the user or mark them as rejected
+      // For now, we'll just show a toast
+      toast({
+        title: "User Rejected",
+        description: `${user.name} has been rejected.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Sample medicine approval data
+  const medicineApprovals = [
+    {
+      id: "MED001",
+      name: "Paracetamol",
+      quantity: "500 tablets",
+      donor: "John Doe Pharmaceuticals",
+      expiryDate: "2024-12-31",
+      donationDate: "2023-12-01",
+      status: "Pending"
+    },
+    {
+      id: "MED002",
+      name: "Insulin",
+      quantity: "25 vials",
+      donor: "MediCare Hospital",
+      expiryDate: "2024-06-15",
+      donationDate: "2023-12-02",
+      status: "Pending"
+    },
+    {
+      id: "MED003",
+      name: "Antibiotic Ointment",
+      quantity: "100 tubes",
+      donor: "HealthPlus Clinic",
+      expiryDate: "2025-02-28",
+      donationDate: "2023-12-03",
+      status: "Pending"
+    }
+  ];
+
+  // Sample transaction data
+  const transactionData = [
+    {
+      id: "TXN001",
+      medicine: "Paracetamol",
+      quantity: "100 tablets",
+      donor: "John Doe Pharmaceuticals",
+      ngo: "Health For All NGO",
+      recipient: "City Hospital",
+      date: "2023-12-05",
+      status: "Completed"
+    },
+    {
+      id: "TXN002",
+      medicine: "Insulin",
+      quantity: "10 vials",
+      donor: "MediCare Hospital",
+      ngo: "Medical Aid Foundation",
+      recipient: "Rural Health Camp",
+      date: "2023-12-08",
+      status: "In Progress"
+    }
+  ];
+
   const handleApproveMedicine = (medicine) => {
     toast({
       title: "Medicine Approved",
@@ -175,12 +230,29 @@ const AdminDashboard = () => {
     });
   };
   
+  // Get metrics data
+  const metricsData = {
+    totalUsers: approvedUsers.length + userRequests.length,
+    totalDonors: [...approvedUsers, ...userRequests].filter(user => user.type === "Donor").length,
+    totalNGOs: [...approvedUsers, ...userRequests].filter(user => user.type === "NGO").length,
+    totalRecipients: [...approvedUsers, ...userRequests].filter(user => user.type === "Recipient").length,
+    totalMedicines: 845,
+    totalTransactions: 312,
+    donationsApproved: 278,
+    donationsRejected: 34
+  };
+  
   return (
     <>
       <Navbar />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
-          <h1 className="text-3xl font-bold text-medishare-dark mb-6">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold text-medishare-dark mb-2">Admin Dashboard</h1>
+          {currentUser && (
+            <p className="text-gray-600 mb-6">
+              Welcome, {currentUser.name || currentUser.email} | {currentUser.department || 'Admin Department'}
+            </p>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Sidebar */}
@@ -251,139 +323,165 @@ const AdminDashboard = () => {
                     <CardDescription>Approve or reject user registrations after verification</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">Pending Approvals</h3>
-                        <div className="w-1/3">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-                            <Input 
-                              placeholder="Search users..." 
-                              className="pl-9 h-9" 
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                    {isLoading ? (
+                      <div className="flex justify-center items-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin text-medishare-blue" />
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-medium">Pending Approvals</h3>
+                          <div className="w-1/3">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                              <Input 
+                                placeholder="Search users..." 
+                                className="pl-9 h-9" 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="overflow-x-auto">
+                          {userRequests.length === 0 ? (
+                            <p className="text-center py-4 text-gray-500">No pending approvals</p>
+                          ) : (
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification</th>
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {userRequests
+                                  .filter(user => 
+                                    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    user.type.toLowerCase().includes(searchTerm.toLowerCase())
+                                  )
+                                  .map((user) => (
+                                  <tr key={user.id} className="border-b hover:bg-gray-50">
+                                    <td className="px-4 py-4 text-sm">{user.id.substring(0, 8)}...</td>
+                                    <td className="px-4 py-4 text-sm font-medium">{user.name}</td>
+                                    <td className="px-4 py-4 text-sm">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        user.type === "Donor" 
+                                          ? "bg-blue-100 text-blue-800" 
+                                          : user.type === "NGO" 
+                                          ? "bg-green-100 text-green-800" 
+                                          : "bg-purple-100 text-purple-800"
+                                      }`}>
+                                        {user.type}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-4 text-sm">{user.email}</td>
+                                    <td className="px-4 py-4 text-sm">{user.verification}</td>
+                                    <td className="px-4 py-4 text-sm">{user.registeredDate}</td>
+                                    <td className="px-4 py-4 text-sm">
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="bg-transparent"
+                                          onClick={() => {}}
+                                        >
+                                          <Eye className="h-4 w-4 text-gray-500" />
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="bg-transparent text-green-600 border-green-200 hover:bg-green-50"
+                                          onClick={() => handleApproveUser(user)}
+                                        >
+                                          <UserCheck className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          className="bg-transparent text-red-600 border-red-200 hover:bg-red-50"
+                                          onClick={() => handleRejectUser(user)}
+                                        >
+                                          <UserX className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                        
+                        <div className="mt-8">
+                          <h3 className="text-lg font-medium mb-4">Approved Users</h3>
+                          <div className="overflow-x-auto">
+                            {approvedUsers.length === 0 ? (
+                              <p className="text-center py-4 text-gray-500">No approved users</p>
+                            ) : (
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="border-b">
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {approvedUsers
+                                    .filter(user => 
+                                      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                      user.type.toLowerCase().includes(searchTerm.toLowerCase())
+                                    )
+                                    .map((user) => (
+                                    <tr key={user.id} className="border-b hover:bg-gray-50">
+                                      <td className="px-4 py-4 text-sm">{user.id.substring(0, 8)}...</td>
+                                      <td className="px-4 py-4 text-sm font-medium">{user.name}</td>
+                                      <td className="px-4 py-4 text-sm">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                          user.type === "Donor" 
+                                            ? "bg-blue-100 text-blue-800" 
+                                            : user.type === "NGO" 
+                                            ? "bg-green-100 text-green-800" 
+                                            : "bg-purple-100 text-purple-800"
+                                        }`}>
+                                          {user.type}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-4 text-sm">{user.email}</td>
+                                      <td className="px-4 py-4 text-sm">{user.verification}</td>
+                                      <td className="px-4 py-4 text-sm">{user.registeredDate}</td>
+                                      <td className="px-4 py-4 text-sm">
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="bg-transparent text-gray-500"
+                                        >
+                                          <Eye className="h-4 w-4 mr-1" />
+                                          View
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {userRequests.map((user) => (
-                              <tr key={user.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-4 text-sm">{user.id}</td>
-                                <td className="px-4 py-4 text-sm font-medium">{user.name}</td>
-                                <td className="px-4 py-4 text-sm">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    user.type === "Donor" 
-                                      ? "bg-blue-100 text-blue-800" 
-                                      : user.type === "NGO" 
-                                      ? "bg-green-100 text-green-800" 
-                                      : "bg-purple-100 text-purple-800"
-                                  }`}>
-                                    {user.type}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-sm">{user.email}</td>
-                                <td className="px-4 py-4 text-sm">{user.verification}</td>
-                                <td className="px-4 py-4 text-sm">{user.registeredDate}</td>
-                                <td className="px-4 py-4 text-sm">
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="bg-transparent"
-                                      onClick={() => {}}
-                                    >
-                                      <Eye className="h-4 w-4 text-gray-500" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="bg-transparent text-green-600 border-green-200 hover:bg-green-50"
-                                      onClick={() => handleApproveUser(user)}
-                                    >
-                                      <UserCheck className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="bg-transparent text-red-600 border-red-200 hover:bg-red-50"
-                                      onClick={() => handleRejectUser(user)}
-                                    >
-                                      <UserX className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      <div className="mt-8">
-                        <h3 className="text-lg font-medium mb-4">Approved Users</h3>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {approvedUsers.map((user) => (
-                                <tr key={user.id} className="border-b hover:bg-gray-50">
-                                  <td className="px-4 py-4 text-sm">{user.id}</td>
-                                  <td className="px-4 py-4 text-sm font-medium">{user.name}</td>
-                                  <td className="px-4 py-4 text-sm">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      user.type === "Donor" 
-                                        ? "bg-blue-100 text-blue-800" 
-                                        : user.type === "NGO" 
-                                        ? "bg-green-100 text-green-800" 
-                                        : "bg-purple-100 text-purple-800"
-                                    }`}>
-                                      {user.type}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-4 text-sm">{user.email}</td>
-                                  <td className="px-4 py-4 text-sm">{user.verification}</td>
-                                  <td className="px-4 py-4 text-sm">{user.registeredDate}</td>
-                                  <td className="px-4 py-4 text-sm">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="bg-transparent text-gray-500"
-                                    >
-                                      <Eye className="h-4 w-4 mr-1" />
-                                      View
-                                    </Button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -582,7 +680,6 @@ const AdminDashboard = () => {
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Donation Trends Chart Placeholder */}
                         <Card className="col-span-1 md:col-span-2">
                           <CardHeader>
                             <CardTitle className="text-lg">Donation Trends</CardTitle>
@@ -594,7 +691,6 @@ const AdminDashboard = () => {
                           </CardContent>
                         </Card>
                         
-                        {/* User Distribution Chart Placeholder */}
                         <Card>
                           <CardHeader>
                             <CardTitle className="text-lg">User Distribution</CardTitle>
@@ -620,7 +716,6 @@ const AdminDashboard = () => {
                           </CardContent>
                         </Card>
                         
-                        {/* Approval Rates Chart Placeholder */}
                         <Card>
                           <CardHeader>
                             <CardTitle className="text-lg">Approval Rates</CardTitle>

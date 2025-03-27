@@ -5,21 +5,27 @@ import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Stats from "../components/Stats";
 import Footer from "../components/Footer";
-import { getUser, isAuthenticated } from "@/utils/auth";
+import { getUser, isAuthenticated, UserData } from "@/utils/auth";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 const Index = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<UserData | null>(null);
 
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
     // Check if user is authenticated
-    if (isAuthenticated()) {
-      setUser(getUser());
-    }
+    const checkAuth = async () => {
+      const isAuth = await isAuthenticated();
+      
+      if (isAuth) {
+        setUser(getUser());
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   return (
@@ -39,7 +45,7 @@ const Index = () => {
   );
 };
 
-const WelcomeBack = ({ user }) => {
+const WelcomeBack = ({ user }: { user: UserData }) => {
   const getDashboardLink = () => {
     switch(user.userType) {
       case "donor":
