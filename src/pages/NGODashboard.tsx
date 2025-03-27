@@ -21,6 +21,9 @@ import {
   Truck,
   Users
 } from "lucide-react";
+import DonorsMap from "@/components/maps/DonorsMap";
+import ImpactChart from "@/components/charts/ImpactChart";
+import DonationChart from "@/components/charts/DonationChart";
 
 // Sample available medicines data
 const availableMedicines = [
@@ -106,6 +109,34 @@ const distributionHistory = [
     recipient: "Private Clinic",
     date: "2023-12-10",
     status: "Processing"
+  }
+];
+
+// Sample request status data
+const requestStatusData = [
+  {
+    id: "REQ001",
+    medicine: "Insulin",
+    quantity: "10 vials",
+    requestedFrom: "MediCare Hospital",
+    requestDate: "2023-12-15",
+    status: "Approved"
+  },
+  {
+    id: "REQ002",
+    medicine: "Antibiotics",
+    quantity: "200 capsules",
+    requestedFrom: "City Pharmacy",
+    requestDate: "2023-12-18",
+    status: "Pending"
+  },
+  {
+    id: "REQ003",
+    medicine: "Vitamins",
+    quantity: "100 tablets",
+    requestedFrom: "HealthPlus Clinic",
+    requestDate: "2023-12-20",
+    status: "Rejected"
   }
 ];
 
@@ -385,7 +416,54 @@ const NGODashboard = () => {
                     <CardDescription>Browse and request medicines from donors</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p>This section is under development. Please check back later.</p>
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <Input placeholder="Search medicines..." className="max-w-sm" />
+                        <Button variant="outline">Filter</Button>
+                        <Button>Search</Button>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Donor</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Expiry Date</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {availableMedicines.map((medicine) => (
+                              <tr key={medicine.id} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-4 text-sm">{medicine.id}</td>
+                                <td className="px-4 py-4 text-sm font-medium">{medicine.name}</td>
+                                <td className="px-4 py-4 text-sm">{medicine.quantity}</td>
+                                <td className="px-4 py-4 text-sm">{medicine.donor}</td>
+                                <td className="px-4 py-4 text-sm">{medicine.expiryDate}</td>
+                                <td className="px-4 py-4 text-sm">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    medicine.status === "Available" 
+                                      ? "bg-green-100 text-green-800" 
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}>
+                                    {medicine.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-4 text-sm">
+                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
+                                    Request
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -517,7 +595,54 @@ const NGODashboard = () => {
                     <CardDescription>Track the status of your medicine requests</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p>This section is under development. Please check back later.</p>
+                    <div className="space-y-6">
+                      <Button className="bg-medishare-blue hover:bg-medishare-blue/90">
+                        + Create New Request
+                      </Button>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Requested From</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Request Date</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {requestStatusData.map((request) => (
+                              <tr key={request.id} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-4 text-sm">{request.id}</td>
+                                <td className="px-4 py-4 text-sm font-medium">{request.medicine}</td>
+                                <td className="px-4 py-4 text-sm">{request.quantity}</td>
+                                <td className="px-4 py-4 text-sm">{request.requestedFrom}</td>
+                                <td className="px-4 py-4 text-sm">{request.requestDate}</td>
+                                <td className="px-4 py-4 text-sm">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    request.status === "Approved" 
+                                      ? "bg-green-100 text-green-800" 
+                                      : request.status === "Pending" 
+                                      ? "bg-blue-100 text-blue-800" 
+                                      : "bg-red-100 text-red-800"
+                                  }`}>
+                                    {request.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-4 text-sm">
+                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
+                                    Details
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -567,7 +692,10 @@ const NGODashboard = () => {
                       </Card>
                     </div>
                     
-                    <p>Detailed impact charts will be available soon.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <ImpactChart title="Medicines by Category" />
+                      <DonationChart title="Monthly Donation Trends" />
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -579,7 +707,52 @@ const NGODashboard = () => {
                     <CardDescription>Find donors in your area that have medicines available</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p>Donors map and listing will be available soon.</p>
+                    <DonorsMap title="Nearby Donors" className="mb-6" />
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Donor Name</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Distance</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Available Medicines</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-4 text-sm font-medium">John Doe Pharmaceuticals</td>
+                            <td className="px-4 py-4 text-sm">2.5 km</td>
+                            <td className="px-4 py-4 text-sm">Antibiotics, Painkillers, Insulin</td>
+                            <td className="px-4 py-4 text-sm">
+                              <Button variant="ghost" size="sm" className="text-medishare-blue">
+                                Contact
+                              </Button>
+                            </td>
+                          </tr>
+                          <tr className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-4 text-sm font-medium">MediCare Hospital</td>
+                            <td className="px-4 py-4 text-sm">1.8 km</td>
+                            <td className="px-4 py-4 text-sm">Asthma Inhalers, Diabetes Medication</td>
+                            <td className="px-4 py-4 text-sm">
+                              <Button variant="ghost" size="sm" className="text-medishare-blue">
+                                Contact
+                              </Button>
+                            </td>
+                          </tr>
+                          <tr className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-4 text-sm font-medium">HealthPlus Clinic</td>
+                            <td className="px-4 py-4 text-sm">3.2 km</td>
+                            <td className="px-4 py-4 text-sm">Vitamin C, Antibiotic Ointment</td>
+                            <td className="px-4 py-4 text-sm">
+                              <Button variant="ghost" size="sm" className="text-medishare-blue">
+                                Contact
+                              </Button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </CardContent>
                 </Card>
               )}
