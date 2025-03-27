@@ -10,10 +10,10 @@ import { UserType, isAuthenticated, getUser } from "./auth";
  * @param requiredUserType The user type required to access the route
  * @returns boolean indicating access permission
  */
-export const hasRouteAccess = (requiredUserType?: UserType | UserType[]): boolean => {
+export const hasRouteAccess = async (requiredUserType?: UserType | UserType[]): Promise<boolean> => {
   // If no specific user type is required, check if user is authenticated
   if (!requiredUserType) {
-    return isAuthenticated();
+    return await isAuthenticated();
   }
   
   // Get current user
