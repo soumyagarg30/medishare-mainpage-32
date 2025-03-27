@@ -1,344 +1,135 @@
 
 /**
- * Utility functions for verification of various IDs required by MediShare
+ * API mock for verification services
+ * In a real application, these would call actual verification APIs
  */
+
+// Regular expressions for validating format
+const GST_ID_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const UID_REGEX = /^[A-Z]{2}\/[A-Z]{2}\/[0-9]{3}\/[0-9]{4}-[0-9]{2}$/;
+const DIGILOCKER_REGEX = /^[A-Z0-9]{12}$/;
+const ADMIN_CODE_REGEX = /^ADM-[A-Z0-9]{6}$/;
+
+// Authorized admin email domains
+const AUTHORIZED_ADMIN_DOMAINS = ['medishare.org', 'medishare.admin.in', 'health.gov.in'];
+
+// Valid admin verification codes (in a real application, these would be stored securely)
+const VALID_ADMIN_CODES = ['ADM-12AB34', 'ADM-567C89', 'ADM-XYZ123'];
 
 /**
- * Verify GST ID for donors
- * Performs validation against standard GST ID formats and patterns for India
+ * Verify a GST ID
+ * @param gstId GST ID to verify
+ * @returns Object with valid flag and message
  */
-export const verifyGSTID = async (gstId: string): Promise<{
-  valid: boolean;
-  name?: string;
-  address?: string;
-  message?: string;
-}> => {
-  console.log("Verifying GST ID:", gstId);
+export const verifyGSTID = async (gstId: string): Promise<{ valid: boolean; message?: string }> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // GST ID format validation: 
-  // - 2 digits state code
-  // - 10 digits PAN
-  // - 1 digit entity number
-  // - 1 digit check code
-  // - 1 digit 'Z' by default
-  const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+  // Format validation
+  if (!GST_ID_REGEX.test(gstId)) {
+    return {
+      valid: false,
+      message: "Invalid GST ID format. It should be in the format: 22AAAAA0000A1Z5"
+    };
+  }
   
-  if (!gstId || !gstRegex.test(gstId)) {
-    return {
-      valid: false,
-      message: "Invalid GST ID format. Must follow the standard 15-character GST format."
-    };
-  }
-
-  // First 2 digits represent state code - validate state code is between 01-37
-  const stateCode = parseInt(gstId.substring(0, 2));
-  if (stateCode < 1 || stateCode > 37) {
-    return {
-      valid: false,
-      message: "Invalid state code in GST ID. Must be between 01-37."
-    };
-  }
-
-  // PAN validation - 10 characters after state code
-  const panPart = gstId.substring(2, 12);
-  // First 5 chars must be alphabets, next 4 must be numbers, last char must be alphabet
-  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-  if (!panRegex.test(panPart)) {
-    return {
-      valid: false,
-      message: "PAN portion of GST ID is invalid."
-    };
-  }
-
-  // Verify checksum (full implementation)
-  const isValidChecksum = validateGSTChecksum(gstId);
-  if (!isValidChecksum) {
-    return {
-      valid: false,
-      message: "GST ID checksum validation failed. Please enter a valid GST ID."
-    };
-  }
-
-  // Mock API call - in production, this would be a real API call
-  // Simulating network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // For valid GST IDs, return success with mock data
-  // In production, this would fetch real data from the GST API
+  // In a real application, this would call the actual GST verification API
+  // Here we're simulating validation based on the format
   return {
     valid: true,
-    name: "Organization with valid GST ID",
-    address: "Address associated with GST ID"
+    message: "GST ID verified successfully!"
   };
 };
 
 /**
- * Validates the GST checksum using the standard algorithm
+ * Verify a UID (Unique Identification) for NGOs
+ * @param uid UID to verify
+ * @returns Object with valid flag and message
  */
-const validateGSTChecksum = (gstId: string): boolean => {
-  if (!gstId || gstId.length !== 15) {
-    return false;
+export const verifyUID = async (uid: string): Promise<{ valid: boolean; message?: string }> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // Format validation
+  if (!UID_REGEX.test(uid)) {
+    return {
+      valid: false,
+      message: "Invalid UID format. It should be in the format: MH/MU/123/2023-24"
+    };
   }
   
-  // Implementation of the checksum algorithm for GST
-  // This is a proper implementation of the checksum validation
-  
-  // The last character is the checksum
-  const providedCheckDigit = gstId.charAt(14);
-  
-  // In a real implementation, we would calculate the checksum
-  // based on the algorithm defined by GST authorities
-  
-  // Simplified implementation for demo purposes that performs
-  // basic structural validation but accepts valid format GST IDs
-  const validFormat = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/.test(gstId);
-  
-  return validFormat;
+  // In a real application, this would call the actual NGO verification API
+  // Here we're simulating validation based on the format
+  return {
+    valid: true,
+    message: "NGO UID verified successfully!"
+  };
 };
 
 /**
- * Verify UID/Registration Number for NGOs
- * Performs validation against standard NGO registration formats
+ * Verify a DigiLocker ID
+ * @param digiLocker DigiLocker ID to verify
+ * @returns Object with valid flag and message
  */
-export const verifyUID = async (uid: string): Promise<{
-  valid: boolean;
-  name?: string;
-  registrationDetails?: {
-    date: string;
-    authority: string;
+export const verifyDigiLocker = async (digiLocker: string): Promise<{ valid: boolean; message?: string }> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // Format validation
+  if (!DIGILOCKER_REGEX.test(digiLocker)) {
+    return {
+      valid: false,
+      message: "Invalid DigiLocker ID format. It should be a 12-character alphanumeric code."
+    };
+  }
+  
+  // In a real application, this would call the actual DigiLocker verification API
+  // Here we're simulating validation based on the format
+  return {
+    valid: true,
+    message: "DigiLocker ID verified successfully!"
   };
-  message?: string;
-}> => {
-  console.log("Verifying UID:", uid);
+};
+
+/**
+ * Verify an admin verification code and email domain
+ * @param adminCode Admin verification code to verify
+ * @param email Admin email to verify
+ * @returns Object with valid flag and message
+ */
+export const verifyAdminCode = async (adminCode: string, email?: string): Promise<{ valid: boolean; message?: string }> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // Minimum validation criteria for any registration number
-  if (!uid || uid.length < 5 || uid.length > 30) {
+  // Format validation
+  if (!ADMIN_CODE_REGEX.test(adminCode)) {
     return {
       valid: false,
-      message: "Registration numbers should be between 5-30 characters."
+      message: "Invalid admin code format. It should be in the format: ADM-123ABC"
     };
   }
-
-  // Comprehensive validation for common NGO registration formats in India
-  const validFormats = [
-    // Society Registration Act format
-    /^S[\/\-]?[0-9]{1,6}[\/\-]?[0-9]{4}$/,
-    
-    // Trust Registration format
-    /^T[\/\-]?[0-9]{1,6}[\/\-]?[0-9]{4}$/,
-    
-    // Companies Act Section 8 format
-    /^[Uu][\/\-]?[0-9]{5,13}[\/\-]?[A-Z]{2}[\/\-]?[A-Z]{3}[\/\-]?[0-9]{4}$/,
-    
-    // FCRA Registration format
-    /^[0-9]{6,12}[\/\-]?F[CR]{2}[\/\-]?[0-9]{4}$/,
-    
-    // Generic NGO format with alphanumeric characters
-    /^[A-Z0-9][A-Z0-9\/\-]{4,28}[A-Z0-9]$/,
-    
-    // State-specific formats (e.g., Maharashtra, Karnataka)
-    /^[A-Z]{2,3}[\/\-][0-9]{2,4}[\/\-][0-9]{1,5}$/,
-    
-    // Year-based registration format
-    /^[0-9]{2,4}[\/\-][A-Z]{1,5}[\/\-][0-9]{1,5}$/
-  ];
   
-  let isValidFormat = false;
-  for (const pattern of validFormats) {
-    if (pattern.test(uid)) {
-      isValidFormat = true;
-      break;
-    }
-  }
-
-  if (!isValidFormat) {
+  // Validate admin code
+  if (!VALID_ADMIN_CODES.includes(adminCode)) {
     return {
       valid: false,
-      message: "Registration number format is not recognized. Please verify your registration ID."
+      message: "Invalid admin verification code. Please contact the system administrator."
     };
   }
-
-  // Additional validation for specific formats
-  // For example, if it's an FCRA registration, we can validate the year
-  if (/FCRA/i.test(uid)) {
-    const yearMatch = uid.match(/[0-9]{4}/);
-    const currentYear = new Date().getFullYear();
-    if (yearMatch && parseInt(yearMatch[0]) > currentYear) {
+  
+  // Validate email domain if provided
+  if (email) {
+    const domain = email.split('@')[1];
+    if (!AUTHORIZED_ADMIN_DOMAINS.some(d => domain === d)) {
       return {
         valid: false,
-        message: "Invalid registration year in FCRA number."
+        message: `Invalid email domain. Admin accounts must use an authorized domain (${AUTHORIZED_ADMIN_DOMAINS.join(', ')}).`
       };
     }
   }
-
-  // Mock API call - in production, this would be a real API call
-  // Simulating network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // For valid format UIDs, return success
-  // In production, this would verify against the appropriate NGO database
   return {
     valid: true,
-    name: "Verified NGO Organization",
-    registrationDetails: {
-      date: "2020-01-01", // This would be the actual registration date
-      authority: "Registrar of Societies" // This would be the actual authority
-    }
+    message: "Admin verification successful!"
   };
 };
-
-/**
- * Verify DigiLocker ID for recipients
- * Validates ID format according to DigiLocker specifications
- */
-export const verifyDigiLocker = async (id: string): Promise<{
-  valid: boolean;
-  name?: string;
-  message?: string;
-}> => {
-  console.log("Verifying DigiLocker ID:", id);
-  
-  // Basic validation for DigiLocker ID
-  if (!id || id.length < 8) {
-    return {
-      valid: false,
-      message: "DigiLocker ID should be at least 8 characters long."
-    };
-  }
-
-  // DigiLocker ID validation patterns
-  // These are based on the actual formats used by DigiLocker
-  const digilockerPatterns = [
-    // Standard DigiLocker UUID format
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    
-    // DigiLocker account ID format
-    /^DL[0-9]{10,14}$/,
-    
-    // Aadhaar-linked DigiLocker format (masked for privacy)
-    /^AADHAAR-[Xx]{4}-[0-9]{4}$/,
-    
-    // Username-based DigiLocker ID
-    /^[a-zA-Z][a-zA-Z0-9.]{7,29}$/,
-    
-    // Email-based DigiLocker ID (common pattern)
-    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-  ];
-
-  let isValidFormat = false;
-  for (const pattern of digilockerPatterns) {
-    if (pattern.test(id)) {
-      isValidFormat = true;
-      break;
-    }
-  }
-
-  if (!isValidFormat) {
-    return {
-      valid: false,
-      message: "DigiLocker ID format is not recognized. Please verify your ID."
-    };
-  }
-
-  // Additional validation for specific formats
-  // Email validation for email-based DigiLocker IDs
-  if (id.includes('@')) {
-    const parts = id.split('@');
-    if (parts.length !== 2 || !parts[1].includes('.')) {
-      return {
-        valid: false,
-        message: "Invalid email format for DigiLocker ID."
-      };
-    }
-  }
-
-  // Mock API call - in production, this would connect to DigiLocker API
-  // Simulating network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // For valid format DigiLocker IDs, return success
-  return {
-    valid: true,
-    name: "Verified DigiLocker User"
-  };
-};
-
-/**
- * Verify Admin code
- * Implements comprehensive validation for admin authorization codes
- */
-export const verifyAdminCode = async (code: string): Promise<{
-  valid: boolean;
-  department?: string;
-  message?: string;
-}> => {
-  console.log("Verifying Admin code:", code);
-  
-  // Admin code basic validation
-  if (!code || code.length < 6) {
-    return {
-      valid: false,
-      message: "Admin codes must be at least 6 characters long."
-    };
-  }
-
-  // Admin code format validation
-  // Standard format: 2-5 uppercase letters followed by 4-8 digits
-  const adminCodePattern = /^[A-Z]{2,5}[0-9]{4,8}$/;
-  if (!adminCodePattern.test(code)) {
-    return {
-      valid: false,
-      message: "Admin code format is invalid. Must be 2-5 uppercase letters followed by 4-8 digits."
-    };
-  }
-
-  // Validate department prefix
-  const prefix = code.match(/^[A-Z]{2,5}/)?.[0] || "";
-  const validDepartmentPrefixes = [
-    "ADMIN", "SUPER", "TECH", "MGMT", "OPS", "SEC", 
-    "FIN", "HR", "IT", "LEGAL", "MKT", "PROC", "RD"
-  ];
-  
-  if (!validDepartmentPrefixes.includes(prefix)) {
-    return {
-      valid: false,
-      message: "Invalid department code in admin identifier."
-    };
-  }
-  
-  // Numerical part validation (could contain a checksum)
-  const numPart = code.match(/[0-9]{4,8}$/)?.[0] || "";
-  if (!numPart || numPart.length < 4) {
-    return {
-      valid: false,
-      message: "Admin code number sequence is invalid."
-    };
-  }
-
-  // Simulating verification delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  // Department mapping for recognized prefixes
-  const departmentMap: Record<string, string> = {
-    "ADMIN": "System Administration",
-    "SUPER": "Super Administrator",
-    "TECH": "Technical Support",
-    "MGMT": "Management",
-    "OPS": "Operations",
-    "SEC": "Security",
-    "FIN": "Finance",
-    "HR": "Human Resources",
-    "IT": "Information Technology",
-    "LEGAL": "Legal Department",
-    "MKT": "Marketing",
-    "PROC": "Procurement",
-    "RD": "Research & Development"
-  };
-
-  // For valid format admin codes, return success with department
-  return {
-    valid: true,
-    department: departmentMap[prefix] || "General Administration"
-  };
-};
-
