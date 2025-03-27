@@ -1,5 +1,10 @@
-import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Authentication utilities for MediShare
+ */
+import { supabase } from '@/integrations/supabase/client';
+
+// User type definitions
 export type UserType = 'donor' | 'ngo' | 'recipient' | 'admin';
 
 export interface UserData {
@@ -8,37 +13,44 @@ export interface UserData {
   name: string;
   userType: UserType;
   verified: boolean;
-  createdAt?: string;
-  organization?: string;
+  createdAt: string;
+  // Additional fields based on user type
+  organization?: string; 
   address?: string;
   phoneNumber?: string;
-  verificationId?: string;
-  department?: string;
+  verificationId?: string; // GST ID, UID, DigiLocker ID, or Admin code
+  department?: string; // For admin users
 }
 
-// Local storage key for user data
-const USER_STORAGE_KEY = 'medishare_user_data';
+// Local storage keys
+const USER_KEY = 'medishare_user';
+const AUTH_TOKEN_KEY = 'medishare_auth_token';
 
 /**
  * Save user data to local storage
  */
-export const saveUser = (userData: UserData): void => {
-  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+export const saveUser = (userData: UserData) => {
+  localStorage.setItem(USER_KEY, JSON.stringify(userData));
 };
 
 /**
  * Get user data from local storage
  */
 export const getUser = (): UserData | null => {
-  const userData = localStorage.getItem(USER_STORAGE_KEY);
-  if (userData) {
-    return JSON.parse(userData);
-  }
-  return null;
+  const userData = localStorage.getItem(USER_KEY);
+  return userData ? JSON.parse(userData) : null;
 };
 
 /**
- * Check if user is authenticated by verifying if session exists
+ * Remove user data from local storage (logout)
+ */
+export const removeUser = () => {
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+};
+
+/**
+ * Check if user is authenticated
  */
 export const isAuthenticated = async (): Promise<boolean> => {
   const { data } = await supabase.auth.getSession();
@@ -46,7 +58,8 @@ export const isAuthenticated = async (): Promise<boolean> => {
 };
 
 /**
- * Logout user
+ * Logout the current user
+ * @returns Object indicating success and optional message
  */
 export const logoutUser = async (): Promise<{success: boolean; message?: string}> => {
   try {
@@ -56,17 +69,16 @@ export const logoutUser = async (): Promise<{success: boolean; message?: string}
       throw error;
     }
     
-    // Clear local storage
-    localStorage.removeItem(USER_STORAGE_KEY);
-    
+    removeUser();
     return {
-      success: true
+      success: true,
+      message: "Successfully logged out"
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Logout error:", error);
     return {
       success: false,
-      message: error.message || "An error occurred during logout."
+      message: "Error during logout"
     };
   }
 };
@@ -190,33 +202,59 @@ export const loginUser = async (
  * Register a new user
  */
 export const registerUser = async (
-  email: string,
+  userData: Partial<UserData>,
   password: string,
-  userType: UserType,
-  userData: Partial<UserData>
-): Promise<{ success: boolean; message?: string }> => {
+  verificationId: string
+): Promise<{success: boolean; message?: string}> => {
   try {
+    console.log("Registering user:", userData);
+    
+    // Basic validation
+    if (!userData.email || !userData.userType || !password || !verificationId) {
+      return {
+        success: false,
+        message: "Missing required fields for registration."
+      };
+    }
+    
+    // Prepare user metadata
+    const metadata = {
+      name: userData.name,
+      user_type: userData.userType,
+      organization: userData.organization,
+      address: userData.address,
+      phone_number: userData.phoneNumber,
+      verification_id: verificationId,
+      department: userData.department
+    };
+    
+    // Register user with Supabase with emailRedirectTo set to null to bypass email confirmation
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: userData.email,
       password,
       options: {
-        data: {
-          name: userData.name,
-          user_type: userType,
-          organization: userData.organization,
-          address: userData.address,
-          phone_number: userData.phoneNumber,
-          verification_id: userData.verificationId,
-          department: userData.department
-        }
+        data: metadata,
+        emailRedirectTo: null
       }
     });
-
-    if (error) throw error;
-
+    
+    if (error) {
+      throw error;
+    }
+    
+    if (!data.user) {
+      return {
+        success: false,
+        message: "Registration failed. Please try again."
+      };
+    }
+    
+    // Sign out immediately after registration to prevent auto-login
+    await supabase.auth.signOut();
+    
     return {
       success: true,
-      message: "Registration successful! Please check your email to confirm your account."
+      message: "Registration successful! You can now sign in with your credentials."
     };
   } catch (error: any) {
     console.error("Registration error:", error);
@@ -230,26 +268,29 @@ export const registerUser = async (
 /**
  * Resend confirmation email
  */
-export const resendConfirmationEmail = async (
-  email: string
-): Promise<{ success: boolean; message: string }> => {
+export const resendConfirmationEmail = async (email: string): Promise<{success: boolean; message: string}> => {
   try {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
+      options: {
+        emailRedirectTo: window.location.origin + '/sign-in'
+      }
     });
-
-    if (error) throw error;
-
+    
+    if (error) {
+      throw error;
+    }
+    
     return {
       success: true,
-      message: "Confirmation email sent! Please check your inbox."
+      message: "Confirmation email has been resent. Please check your inbox."
     };
   } catch (error: any) {
-    console.error("Email resend error:", error);
+    console.error("Error resending confirmation email:", error);
     return {
       success: false,
-      message: error.message || "Could not resend confirmation email."
+      message: error.message || "Failed to resend confirmation email."
     };
   }
 };

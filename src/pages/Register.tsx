@@ -157,8 +157,7 @@ const Register = () => {
           break;
         case "admin":
           verificationId = data.adminCode;
-          // Pass email for domain verification
-          verificationResult = await verifyAdminCode(data.adminCode, data.email);
+          verificationResult = await verifyAdminCode(data.adminCode);
           break;
         default:
           throw new Error("Invalid user type");

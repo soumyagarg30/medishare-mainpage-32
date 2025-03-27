@@ -4,8 +4,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UseFormReturn } from "react-hook-form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
 
 interface DonorRegistrationFormProps {
   form: UseFormReturn<any>;
@@ -17,14 +15,6 @@ const DonorRegistrationForm = ({ form, isVerifying, isRegistering }: DonorRegist
   return (
     <Form {...form}>
       <h2 className="text-2xl font-semibold text-medishare-dark mb-6">Donor Registration</h2>
-      
-      <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
-        <InfoIcon className="h-4 w-4 mr-2" />
-        <AlertDescription>
-          Please provide your organization details and a valid GST ID. Your registration will be verified by an admin.
-        </AlertDescription>
-      </Alert>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
           control={form.control}

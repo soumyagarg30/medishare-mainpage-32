@@ -4,8 +4,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UseFormReturn } from "react-hook-form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
 
 interface AdminRegistrationFormProps {
   form: UseFormReturn<any>;
@@ -17,15 +15,6 @@ const AdminRegistrationForm = ({ form, isVerifying, isRegistering }: AdminRegist
   return (
     <Form {...form}>
       <h2 className="text-2xl font-semibold text-medishare-dark mb-6">Admin Registration</h2>
-      
-      <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
-        <InfoIcon className="h-4 w-4 mr-2" />
-        <AlertDescription>
-          Admin registration is restricted to authorized personnel only. You must use an approved email domain 
-          and a valid admin verification code.
-        </AlertDescription>
-      </Alert>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
           control={form.control}
@@ -48,10 +37,9 @@ const AdminRegistrationForm = ({ form, isVerifying, isRegistering }: AdminRegist
             <FormItem>
               <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your authorized email" type="email" {...field} disabled={isVerifying || isRegistering} />
+                <Input placeholder="Enter your email" type="email" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
-              <p className="text-xs text-gray-500 mt-1">Must be an authorized admin email domain</p>
             </FormItem>
           )}
         />
@@ -80,7 +68,7 @@ const AdminRegistrationForm = ({ form, isVerifying, isRegistering }: AdminRegist
                 <Input placeholder="Enter admin verification code" {...field} disabled={isVerifying || isRegistering} />
               </FormControl>
               <FormMessage />
-              <p className="text-xs text-gray-500 mt-1">Contact the system administrator for a valid code</p>
+              <p className="text-xs text-gray-500 mt-1">Enter your official admin authorization code</p>
             </FormItem>
           )}
         />
