@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -150,7 +149,11 @@ const DonorDashboard = () => {
       setUser(updatedUser);
       setIsEditing(false);
       
-      toast.success("Profile updated successfully!");
+      // Fixed: Using the toast method correctly
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!",
+      });
     }
   };
 
@@ -170,7 +173,11 @@ const DonorDashboard = () => {
     e.preventDefault();
     
     // Here you would typically send the data to a backend
-    toast.success("Donation submitted successfully!");
+    // Fixed: Using the toast method correctly
+    toast({
+      title: "Success",
+      description: "Donation submitted successfully!",
+    });
     
     // Reset form
     setDonationData({
