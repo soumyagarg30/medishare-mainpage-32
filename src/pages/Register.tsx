@@ -186,10 +186,11 @@ const Register = () => {
         phoneNumber: data.phoneNumber,
         address: data.address,
         department: data.department,
-        verificationId: verificationId // Pass verificationId as the 4th argument
+        verificationId: verificationId
       };
       
-      const registrationResult = await registerUser(userData, data.password, verificationId, userType);
+      // Fix: Remove the 4th argument (userType) as it's already included in userData
+      const registrationResult = await registerUser(userData, data.password, verificationId);
       
       setIsRegistering(false);
       
