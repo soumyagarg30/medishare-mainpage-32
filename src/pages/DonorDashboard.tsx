@@ -8,6 +8,11 @@ import { getUser, UserData, isAuthenticated } from "@/utils/auth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/sonner";
+import ImpactChart from "@/components/charts/ImpactChart";
 import { 
   UserCircle,
   Gift,
@@ -53,11 +58,41 @@ const impactData = {
   ngosSupported: "10+"
 };
 
+// Sample medicine categories for donation
+const medicineCategories = [
+  { value: "antibiotics", label: "Antibiotics" },
+  { value: "painkillers", label: "Painkillers" },
+  { value: "vitamins", label: "Vitamins" },
+  { value: "insulin", label: "Insulin" },
+  { value: "first-aid", label: "First Aid Supplies" },
+  { value: "others", label: "Others" }
+];
+
+// Sample donation NGOs
+const ngos = [
+  { value: "health-for-all", label: "Health For All NGO" },
+  { value: "medical-aid", label: "Medical Aid Foundation" },
+  { value: "care-ngo", label: "Care NGO" },
+  { value: "healing-hands", label: "Healing Hands" },
+  { value: "med-share", label: "MedShare" }
+];
+
 const DonorDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [user, setUser] = useState<UserData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editableUserData, setEditableUserData] = useState<Partial<UserData>>({});
+  
+  // Donation form state
+  const [donationData, setDonationData] = useState({
+    medicineName: "",
+    category: "",
+    quantity: "",
+    expiryDate: "",
+    ngo: "",
+    description: ""
+  });
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,6 +127,15 @@ const DonorDashboard = () => {
     setEditableUserData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleDonationInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setDonationData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSelectChange = (value: string, field: string) => {
+    setDonationData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSaveProfile = () => {
     // In a real application, this would send the updated profile data to the backend
     if (user) {
@@ -105,6 +149,8 @@ const DonorDashboard = () => {
       localStorage.setItem('medishare_user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setIsEditing(false);
+      
+      toast.success("Profile updated successfully!");
     }
   };
 
@@ -118,6 +164,23 @@ const DonorDashboard = () => {
       });
     }
     setIsEditing(false);
+  };
+  
+  const handleSubmitDonation = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Here you would typically send the data to a backend
+    toast.success("Donation submitted successfully!");
+    
+    // Reset form
+    setDonationData({
+      medicineName: "",
+      category: "",
+      quantity: "",
+      expiryDate: "",
+      ngo: "",
+      description: ""
+    });
   };
 
   if (!user) {
@@ -314,10 +377,117 @@ const DonorDashboard = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>Donate Medicines</CardTitle>
-                    <CardDescription>Make a donation to help those in need</CardDescription>
+                    <CardDescription>Help those in need by donating medicines</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p>This section is under development. Please check back later.</p>
+                    <form onSubmit={handleSubmitDonation} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label htmlFor="medicineName" className="text-sm font-medium">
+                            Medicine Name
+                          </label>
+                          <Input
+                            id="medicineName"
+                            name="medicineName"
+                            value={donationData.medicineName}
+                            onChange={handleDonationInputChange}
+                            placeholder="Enter medicine name"
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="category" className="text-sm font-medium">
+                            Category
+                          </label>
+                          <Select
+                            value={donationData.category}
+                            onValueChange={(value) => handleSelectChange(value, 'category')}
+                          >
+                            <SelectTrigger id="category">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {medicineCategories.map((category) => (
+                                <SelectItem key={category.value} value={category.value}>
+                                  {category.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="quantity" className="text-sm font-medium">
+                            Quantity
+                          </label>
+                          <Input
+                            id="quantity"
+                            name="quantity"
+                            value={donationData.quantity}
+                            onChange={handleDonationInputChange}
+                            placeholder="e.g., 100 tablets"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="expiryDate" className="text-sm font-medium">
+                            Expiry Date
+                          </label>
+                          <Input
+                            id="expiryDate"
+                            name="expiryDate"
+                            type="date"
+                            value={donationData.expiryDate}
+                            onChange={handleDonationInputChange}
+                            min={new Date().toISOString().split('T')[0]}
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="ngo" className="text-sm font-medium">
+                            NGO to Donate To
+                          </label>
+                          <Select
+                            value={donationData.ngo}
+                            onValueChange={(value) => handleSelectChange(value, 'ngo')}
+                          >
+                            <SelectTrigger id="ngo">
+                              <SelectValue placeholder="Select NGO" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ngos.map((ngo) => (
+                                <SelectItem key={ngo.value} value={ngo.value}>
+                                  {ngo.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="description" className="text-sm font-medium">
+                          Additional Details
+                        </label>
+                        <Textarea
+                          id="description"
+                          name="description"
+                          value={donationData.description}
+                          onChange={handleDonationInputChange}
+                          placeholder="Add any additional details about your donation"
+                          rows={4}
+                        />
+                      </div>
+
+                      <div className="pt-4">
+                        <Button type="submit" className="w-full md:w-auto">
+                          Submit Donation
+                        </Button>
+                      </div>
+                    </form>
                   </CardContent>
                 </Card>
               )}
@@ -360,49 +530,89 @@ const DonorDashboard = () => {
               )}
               
               {activeTab === "impact" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Your Impact</CardTitle>
-                    <CardDescription>See the difference you're making</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card className="bg-green-50 border-green-200">
-                        <CardBody className="flex flex-col items-center justify-center p-4">
-                          <Coins className="h-6 w-6 text-green-600 mb-2" />
-                          <CardTitle className="text-2xl font-bold text-green-700">{impactData.medicinesDonated}</CardTitle>
-                          <CardDescription className="text-sm text-gray-600">Medicines Donated</CardDescription>
-                        </CardBody>
-                      </Card>
-                      
-                      <Card className="bg-blue-50 border-blue-200">
-                        <CardBody className="flex flex-col items-center justify-center p-4">
-                          <UserCircle className="h-6 w-6 text-blue-600 mb-2" />
-                          <CardTitle className="text-2xl font-bold text-blue-700">{impactData.patientsHelped}</CardTitle>
-                          <CardDescription className="text-sm text-gray-600">Patients Helped</CardDescription>
-                        </CardBody>
-                      </Card>
-                      
-                      <Card className="bg-orange-50 border-orange-200">
-                        <CardBody className="flex flex-col items-center justify-center p-4">
-                          <Gift className="h-6 w-6 text-orange-600 mb-2" />
-                          <CardTitle className="text-2xl font-bold text-orange-700">{impactData.ngosSupported}</CardTitle>
-                          <CardDescription className="text-sm text-gray-600">NGOs Supported</CardDescription>
-                        </CardBody>
-                      </Card>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Your Impact</CardTitle>
+                      <CardDescription>See the difference you're making</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="bg-green-50 border-green-200">
+                          <CardBody className="flex flex-col items-center justify-center p-4">
+                            <Coins className="h-6 w-6 text-green-600 mb-2" />
+                            <CardTitle className="text-2xl font-bold text-green-700">{impactData.medicinesDonated}</CardTitle>
+                            <CardDescription className="text-sm text-gray-600">Medicines Donated</CardDescription>
+                          </CardBody>
+                        </Card>
+                        
+                        <Card className="bg-blue-50 border-blue-200">
+                          <CardBody className="flex flex-col items-center justify-center p-4">
+                            <UserCircle className="h-6 w-6 text-blue-600 mb-2" />
+                            <CardTitle className="text-2xl font-bold text-blue-700">{impactData.patientsHelped}</CardTitle>
+                            <CardDescription className="text-sm text-gray-600">Patients Helped</CardDescription>
+                          </CardBody>
+                        </Card>
+                        
+                        <Card className="bg-orange-50 border-orange-200">
+                          <CardBody className="flex flex-col items-center justify-center p-4">
+                            <Gift className="h-6 w-6 text-orange-600 mb-2" />
+                            <CardTitle className="text-2xl font-bold text-orange-700">{impactData.ngosSupported}</CardTitle>
+                            <CardDescription className="text-sm text-gray-600">NGOs Supported</CardDescription>
+                          </CardBody>
+                        </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <ImpactChart title="Medicines Donated by Category" className="w-full" />
+                </div>
               )}
               
               {activeTab === "tax" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Tax Benefits</CardTitle>
-                    <CardDescription>Learn about tax benefits for your donations</CardDescription>
+                    <CardTitle>Tax Benefits for Medicine Donations</CardTitle>
+                    <CardDescription>Learn how your donations can help reduce your tax burden</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p>Information on tax benefits will be available soon.</p>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Income Tax Deductions Under Section 80G</h3>
+                      <p className="text-gray-600">
+                        When you donate medicines through our platform to registered NGOs, you can claim tax deductions under Section 80G of the Income Tax Act. The deduction amount depends on the category of the organization and the type of donation.
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Benefits for Corporate Donors</h3>
+                      <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                        <li>Donations are eligible for Corporate Social Responsibility (CSR) spending as mandated under Companies Act, 2013.</li>
+                        <li>Tax benefits under section 80G - 50% to 100% deduction depending on the receiving organization.</li>
+                        <li>Reduced tax liability while making a positive social impact.</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Documentation Required</h3>
+                      <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                        <li>Donation receipt from the receiving NGO (automatically generated through our platform).</li>
+                        <li>80G certificate of the receiving organization (available for download).</li>
+                        <li>Your PAN details must be correctly provided during donation.</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+                      <h3 className="text-amber-800 font-medium mb-2">Important Note</h3>
+                      <p className="text-amber-700 text-sm">
+                        Tax benefits may vary based on changes in tax laws and the status of the receiving organization. We recommend consulting with a tax professional for specific advice related to your situation. The information provided here is for general guidance only and does not constitute professional tax advice.
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Button variant="outline" className="mt-2">
+                        Download Tax Benefit Guide
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -414,7 +624,40 @@ const DonorDashboard = () => {
                     <CardDescription>Manage your account settings</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p>Account settings management options will be available soon.</p>
+                    <Tabs defaultValue="notifications">
+                      <TabsList className="mb-4">
+                        <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                        <TabsTrigger value="security">Security</TabsTrigger>
+                        <TabsTrigger value="privacy">Privacy</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="notifications" className="space-y-4">
+                        <h3 className="text-lg font-medium">Notification Preferences</h3>
+                        <p className="text-sm text-gray-500 mb-4">Manage how you receive notifications</p>
+                        
+                        <div className="space-y-2">
+                          <p>Notification settings will be available soon.</p>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="security" className="space-y-4">
+                        <h3 className="text-lg font-medium">Security Settings</h3>
+                        <p className="text-sm text-gray-500 mb-4">Manage your account security</p>
+                        
+                        <div className="space-y-2">
+                          <p>Security settings will be available soon.</p>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="privacy" className="space-y-4">
+                        <h3 className="text-lg font-medium">Privacy Settings</h3>
+                        <p className="text-sm text-gray-500 mb-4">Control your privacy preferences</p>
+                        
+                        <div className="space-y-2">
+                          <p>Privacy settings will be available soon.</p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </CardContent>
                 </Card>
               )}
