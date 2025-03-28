@@ -265,7 +265,7 @@ export const verifyDigiLocker = async (id: string): Promise<{
 
 /**
  * Verify Admin code
- * Implements comprehensive validation for admin authorization codes
+ * Only approves the specific admin code "ADMIN678910" and rejects all others
  */
 export const verifyAdminCode = async (code: string): Promise<{
   valid: boolean;
@@ -274,71 +274,20 @@ export const verifyAdminCode = async (code: string): Promise<{
 }> => {
   console.log("Verifying Admin code:", code);
   
-  // Admin code basic validation
-  if (!code || code.length < 6) {
+  // Check for specific admin code - only ADMIN678910 is valid
+  if (code !== "ADMIN678910") {
     return {
       valid: false,
-      message: "Admin codes must be at least 6 characters long."
-    };
-  }
-
-  // Admin code format validation
-  // Standard format: 2-5 uppercase letters followed by 4-8 digits
-  const adminCodePattern = /^[A-Z]{2,5}[0-9]{4,8}$/;
-  if (!adminCodePattern.test(code)) {
-    return {
-      valid: false,
-      message: "Admin code format is invalid. Must be 2-5 uppercase letters followed by 4-8 digits."
-    };
-  }
-
-  // Validate department prefix
-  const prefix = code.match(/^[A-Z]{2,5}/)?.[0] || "";
-  const validDepartmentPrefixes = [
-    "ADMIN", "SUPER", "TECH", "MGMT", "OPS", "SEC", 
-    "FIN", "HR", "IT", "LEGAL", "MKT", "PROC", "RD"
-  ];
-  
-  if (!validDepartmentPrefixes.includes(prefix)) {
-    return {
-      valid: false,
-      message: "Invalid department code in admin identifier."
-    };
-  }
-  
-  // Numerical part validation (could contain a checksum)
-  const numPart = code.match(/[0-9]{4,8}$/)?.[0] || "";
-  if (!numPart || numPart.length < 4) {
-    return {
-      valid: false,
-      message: "Admin code number sequence is invalid."
+      message: "Invalid admin code. Please check your credentials and try again."
     };
   }
 
   // Simulating verification delay
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  // Department mapping for recognized prefixes
-  const departmentMap: Record<string, string> = {
-    "ADMIN": "System Administration",
-    "SUPER": "Super Administrator",
-    "TECH": "Technical Support",
-    "MGMT": "Management",
-    "OPS": "Operations",
-    "SEC": "Security",
-    "FIN": "Finance",
-    "HR": "Human Resources",
-    "IT": "Information Technology",
-    "LEGAL": "Legal Department",
-    "MKT": "Marketing",
-    "PROC": "Procurement",
-    "RD": "Research & Development"
-  };
-
-  // For valid format admin codes, return success with department
+  // For valid admin code, return success with department
   return {
     valid: true,
-    department: departmentMap[prefix] || "General Administration"
+    department: "System Administration"
   };
 };
-
