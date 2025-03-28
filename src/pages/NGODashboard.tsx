@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -24,6 +23,7 @@ import {
 import DonorsMap from "@/components/maps/DonorsMap";
 import ImpactChart from "@/components/charts/ImpactChart";
 import DonationChart from "@/components/charts/DonationChart";
+import DonorsNearMeTab from "@/components/ngo-dashboard/DonorsNearMeTab";
 
 // Sample available medicines data
 const availableMedicines = [
@@ -188,15 +188,12 @@ const NGODashboard = () => {
   };
 
   const handleSaveProfile = () => {
-    // In a real application, this would send the updated profile data to the backend
     if (user) {
       const updatedUser = { 
         ...user, 
         ...editableUserData 
       };
       
-      // Update local storage for demo purposes
-      // In a real app, you would make an API call here
       localStorage.setItem('medishare_user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setIsEditing(false);
@@ -700,62 +697,7 @@ const NGODashboard = () => {
                 </Card>
               )}
               
-              {activeTab === "donors" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Donors Near Me</CardTitle>
-                    <CardDescription>Find donors in your area that have medicines available</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <DonorsMap title="Nearby Donors" className="mb-6" />
-                    
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Donor Name</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Distance</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Available Medicines</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-4 text-sm font-medium">John Doe Pharmaceuticals</td>
-                            <td className="px-4 py-4 text-sm">2.5 km</td>
-                            <td className="px-4 py-4 text-sm">Antibiotics, Painkillers, Insulin</td>
-                            <td className="px-4 py-4 text-sm">
-                              <Button variant="ghost" size="sm" className="text-medishare-blue">
-                                Contact
-                              </Button>
-                            </td>
-                          </tr>
-                          <tr className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-4 text-sm font-medium">MediCare Hospital</td>
-                            <td className="px-4 py-4 text-sm">1.8 km</td>
-                            <td className="px-4 py-4 text-sm">Asthma Inhalers, Diabetes Medication</td>
-                            <td className="px-4 py-4 text-sm">
-                              <Button variant="ghost" size="sm" className="text-medishare-blue">
-                                Contact
-                              </Button>
-                            </td>
-                          </tr>
-                          <tr className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-4 text-sm font-medium">HealthPlus Clinic</td>
-                            <td className="px-4 py-4 text-sm">3.2 km</td>
-                            <td className="px-4 py-4 text-sm">Vitamin C, Antibiotic Ointment</td>
-                            <td className="px-4 py-4 text-sm">
-                              <Button variant="ghost" size="sm" className="text-medishare-blue">
-                                Contact
-                              </Button>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {activeTab === "donors" && <DonorsNearMeTab />}
               
               {activeTab === "notifications" && (
                 <Card>
