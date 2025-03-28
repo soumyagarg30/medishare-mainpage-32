@@ -1,7 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, MapPin, Clock, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Sample notifications data
 const notifications = [
@@ -44,15 +45,32 @@ const notifications = [
 ];
 
 const NotificationsTab = () => {
+  const [notificationsList, setNotificationsList] = useState(notifications);
+
+  const markAllAsRead = () => {
+    setNotificationsList(prev => 
+      prev.map(notification => ({ ...notification, read: true }))
+    );
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Notifications</CardTitle>
-        <CardDescription>Stay updated with donation needs and activities</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>Stay updated with donation needs and activities</CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={markAllAsRead}
+        >
+          Mark all as read
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {notifications.map((notification) => (
+          {notificationsList.map((notification) => (
             <div 
               key={notification.id} 
               className={`p-4 border rounded-lg flex items-start gap-4 ${notification.read ? 'bg-white' : 'bg-blue-50 border-blue-100'}`}

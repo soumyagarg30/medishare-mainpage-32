@@ -16,11 +16,13 @@ import LocationPermission from "@/components/LocationPermission";
 import AnalyticsTab from "@/components/donor-dashboard/AnalyticsTab";
 import NearbyNGOsTab from "@/components/donor-dashboard/NearbyNGOsTab";
 import NotificationsTab from "@/components/donor-dashboard/NotificationsTab";
+import { toast } from "@/hooks/use-toast";
 
 const DonorDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [user, setUser] = useState<UserData | null>(null);
   const navigate = useNavigate();
+  const [locationRequested, setLocationRequested] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -38,10 +40,28 @@ const DonorDashboard = () => {
       }
       
       setUser(userData);
+
+      // Check if we should prompt for location permission
+      const locationPermissionAsked = localStorage.getItem("locationPermissionAsked");
+      if (!locationPermissionAsked && !locationRequested) {
+        setLocationRequested(true);
+        // Let the component render first before showing the toast
+        setTimeout(() => {
+          toast({
+            title: "Enable Location",
+            description: "Please enable location to see nearby NGOs",
+            variant: "default",
+          });
+        }, 1000);
+      }
     };
     
     checkAuth();
-  }, [navigate]);
+  }, [navigate, locationRequested]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
 
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -58,7 +78,7 @@ const DonorDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Sidebar */}
             <div className="md:col-span-3">
-              <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+              <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
             </div>
             
             {/* Main Content */}
