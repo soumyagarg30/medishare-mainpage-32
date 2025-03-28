@@ -12,6 +12,10 @@ import HistoryTab from "@/components/donor-dashboard/HistoryTab";
 import ImpactTab from "@/components/donor-dashboard/ImpactTab";
 import TaxBenefitsTab from "@/components/donor-dashboard/TaxBenefitsTab";
 import SettingsTab from "@/components/donor-dashboard/SettingsTab";
+import LocationPermission from "@/components/LocationPermission";
+import AnalyticsTab from "@/components/donor-dashboard/AnalyticsTab";
+import NearbyNGOsTab from "@/components/donor-dashboard/NearbyNGOsTab";
+import NotificationsTab from "@/components/donor-dashboard/NotificationsTab";
 
 const DonorDashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -46,6 +50,7 @@ const DonorDashboard = () => {
   return (
     <>
       <Navbar />
+      <LocationPermission />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
           <WelcomeMessage user={user} userTypeTitle="Donor" />
@@ -64,6 +69,9 @@ const DonorDashboard = () => {
               {activeTab === "impact" && <ImpactTab />}
               {activeTab === "tax" && <TaxBenefitsTab />}
               {activeTab === "settings" && <SettingsTab />}
+              {activeTab === "analytics" && <AnalyticsTab />}
+              {activeTab === "nearby" && <NearbyNGOsTab />}
+              {activeTab === "notifications" && <NotificationsTab />}
             </div>
           </div>
         </div>

@@ -7,7 +7,10 @@ import {
   Clock,
   FileText,
   TrendingUp,
-  Settings
+  Settings,
+  BarChart3,
+  MapPin,
+  Bell
 } from "lucide-react";
 
 interface SidebarProps {
@@ -42,11 +45,32 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
             <span>Donation History</span>
           </button>
           <button 
+            onClick={() => setActiveTab("nearby")} 
+            className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "nearby" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+          >
+            <MapPin size={18} />
+            <span>NGOs Near Me</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab("notifications")} 
+            className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "notifications" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+          >
+            <Bell size={18} />
+            <span>Notifications</span>
+          </button>
+          <button 
             onClick={() => setActiveTab("impact")} 
             className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "impact" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
           >
             <TrendingUp size={18} />
             <span>Impact</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab("analytics")} 
+            className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "analytics" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+          >
+            <BarChart3 size={18} />
+            <span>Analytics</span>
           </button>
           <button 
             onClick={() => setActiveTab("tax")} 
