@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -52,19 +53,21 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch pending users (not verified)
+      // Fetch pending users (not verified) - excluding admin users
       const { data: pendingData, error: pendingError } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('verified', false);
+        .eq('verified', false)
+        .neq('user_type', 'admin');
         
       if (pendingError) throw pendingError;
       
-      // Fetch approved users (verified)
+      // Fetch approved users (verified) - excluding admin users
       const { data: approvedData, error: approvedError } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('verified', true);
+        .eq('verified', true)
+        .neq('user_type', 'admin');
         
       if (approvedError) throw approvedError;
       
@@ -111,8 +114,6 @@ const AdminDashboard = () => {
         return `UID: ${user.verification_id || 'Not provided'}`;
       case "recipient":
         return `DigiLocker: ${user.verification_id || 'Not provided'}`;
-      case "admin":
-        return `Admin Code: ${user.verification_id || 'Not provided'}`;
       default:
         return `ID: ${user.verification_id || 'Not provided'}`;
     }
@@ -128,8 +129,8 @@ const AdminDashboard = () => {
       if (error) throw error;
       
       toast({
-        title: "User Approved",
-        description: `${user.name} has been approved successfully.`,
+        title: "User Verified",
+        description: `${user.name} has been verified successfully.`,
       });
       
       // Refresh user lists
@@ -138,7 +139,7 @@ const AdminDashboard = () => {
       console.error("Error approving user:", error);
       toast({
         title: "Error",
-        description: "Failed to approve user. Please try again.",
+        description: "Failed to verify user. Please try again.",
         variant: "destructive",
       });
     }
@@ -320,7 +321,7 @@ const AdminDashboard = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>User Management</CardTitle>
-                    <CardDescription>Approve or reject user registrations after verification</CardDescription>
+                    <CardDescription>Verify and approve Donors, NGOs, and Recipients after checking their credentials</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (
@@ -330,7 +331,7 @@ const AdminDashboard = () => {
                     ) : (
                       <div className="space-y-6">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-medium">Pending Approvals</h3>
+                          <h3 className="text-lg font-medium">Pending Verifications</h3>
                           <div className="w-1/3">
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
@@ -346,7 +347,7 @@ const AdminDashboard = () => {
                         
                         <div className="overflow-x-auto">
                           {userRequests.length === 0 ? (
-                            <p className="text-center py-4 text-gray-500">No pending approvals</p>
+                            <p className="text-center py-4 text-gray-500">No pending verifications</p>
                           ) : (
                             <table className="w-full">
                               <thead>
@@ -355,7 +356,7 @@ const AdminDashboard = () => {
                                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
                                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
                                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
-                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification</th>
+                                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification ID</th>
                                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
                                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
                                 </tr>
@@ -375,7 +376,7 @@ const AdminDashboard = () => {
                                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                         user.type === "Donor" 
                                           ? "bg-blue-100 text-blue-800" 
-                                          : user.type === "NGO" 
+                                          : user.type === "Ngo" 
                                           ? "bg-green-100 text-green-800" 
                                           : "bg-purple-100 text-purple-800"
                                       }`}>
@@ -421,10 +422,10 @@ const AdminDashboard = () => {
                         </div>
                         
                         <div className="mt-8">
-                          <h3 className="text-lg font-medium mb-4">Approved Users</h3>
+                          <h3 className="text-lg font-medium mb-4">Verified Users</h3>
                           <div className="overflow-x-auto">
                             {approvedUsers.length === 0 ? (
-                              <p className="text-center py-4 text-gray-500">No approved users</p>
+                              <p className="text-center py-4 text-gray-500">No verified users</p>
                             ) : (
                               <table className="w-full">
                                 <thead>
@@ -433,7 +434,7 @@ const AdminDashboard = () => {
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Email</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Verification ID</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
                                   </tr>
@@ -453,7 +454,7 @@ const AdminDashboard = () => {
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                           user.type === "Donor" 
                                             ? "bg-blue-100 text-blue-800" 
-                                            : user.type === "NGO" 
+                                            : user.type === "Ngo" 
                                             ? "bg-green-100 text-green-800" 
                                             : "bg-purple-100 text-purple-800"
                                         }`}>
