@@ -87,16 +87,26 @@ export const loginUser = async (
   try {
     console.log(`Attempting to login user: ${email} as ${userType}`);
     
-    // Query the users table to find the user with matching email and password
+    // Map user type to entity_type in the database
+    let entityType = userType;
+    if (userType === 'donor') {
+      entityType = 'Donor';
+    } else if (userType === 'ngo') {
+      entityType = 'Intermediary NGO';
+    } else if (userType === 'recipient') {
+      entityType = 'Recipient';
+    }
+    
+    // Query the users table to find the user with matching email and entity_type
     const { data, error } = await supabase
       .from('users')
-      .select('*, donors(*), intermediary_ngo(*), recipients(*)')
+      .select('*')
       .eq('email', email)
       .eq('password', parseInt(password, 10))
-      .eq('entity_type', userType)
+      .eq('entity_type', entityType)
       .single();
     
-    if (error) {
+    if (error || !data) {
       console.error("Login error:", error);
       return {
         success: false,
@@ -104,45 +114,69 @@ export const loginUser = async (
       };
     }
     
-    if (!data) {
-      return {
-        success: false,
-        message: "User not found or incorrect credentials."
-      };
-    }
-    
-    // Map DB entity type to application user type
-    let userProfile: any = null;
+    // Now get additional user details from the appropriate table
+    let userProfile = null;
     let address = '';
     let organization = '';
+    let phoneNumber = '';
+    let name = '';
     
-    if (userType === 'donor' && data.donors) {
-      userProfile = data.donors;
-      address = userProfile.address || '';
-      organization = userProfile.org_name || '';
-    } else if (userType === 'ngo' && data.intermediary_ngo) {
-      userProfile = data.intermediary_ngo;
-      address = userProfile.address || '';
-      organization = userProfile.name || '';
-    } else if (userType === 'recipient' && data.recipients) {
-      userProfile = data.recipients;
-      address = userProfile.address || '';
-      organization = userProfile.org_name || '';
+    if (userType === 'donor') {
+      const { data: donorData, error: donorError } = await supabase
+        .from('donors')
+        .select('*')
+        .eq('entity_id', data.entity_id)
+        .single();
+        
+      if (!donorError && donorData) {
+        userProfile = donorData;
+        address = userProfile.address || '';
+        organization = userProfile.org_name || '';
+        phoneNumber = userProfile.phone || '';
+        name = userProfile.name || '';
+      }
+    } else if (userType === 'ngo') {
+      const { data: ngoData, error: ngoError } = await supabase
+        .from('intermediary_ngo')
+        .select('*')
+        .eq('entity_id', data.entity_id)
+        .single();
+        
+      if (!ngoError && ngoData) {
+        userProfile = ngoData;
+        address = userProfile.address || '';
+        organization = userProfile.name || '';
+        phoneNumber = userProfile.phone || '';
+        name = userProfile.name || '';
+      }
+    } else if (userType === 'recipient') {
+      const { data: recipientData, error: recipientError } = await supabase
+        .from('recipients')
+        .select('*')
+        .eq('entity_id', data.entity_id)
+        .single();
+        
+      if (!recipientError && recipientData) {
+        userProfile = recipientData;
+        address = userProfile.address || '';
+        organization = userProfile.org_name || '';
+        phoneNumber = userProfile.phone || '';
+        name = userProfile.name || '';
+      }
     }
     
     // Create user data object
     const userData: UserData = {
       id: data.entity_id,
       email: data.email,
-      name: userProfile?.name || email.split('@')[0],
-      userType: data.entity_type as UserType,
+      name: name || email.split('@')[0],
+      userType: userType,
       verified: true, // Since we're not using email verification
       createdAt: data.created_at,
       organization: organization,
       address: address,
-      phoneNumber: userProfile?.phone || '',
+      phoneNumber: phoneNumber,
       verificationId: data.verification_id,
-      department: userType === 'admin' ? data.department : undefined
     };
     
     // Save user data
@@ -204,7 +238,9 @@ export const registerUser = async (
         email: userData.email,
         password: parseInt(password, 10),
         entity_id: entityId,
-        entity_type: userData.userType,
+        entity_type: userData.userType === 'donor' ? 'Donor' :
+                     userData.userType === 'ngo' ? 'Intermediary NGO' :
+                     userData.userType === 'recipient' ? 'Recipient' : 'Admin',
         verification_id: verificationId
       });
     
