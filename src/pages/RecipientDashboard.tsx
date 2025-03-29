@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -345,7 +344,7 @@ const RecipientDashboard = () => {
       const { error } = await supabase
         .from('recipients')
         .update({
-          name: editedProfileData.name || profileData.name,
+          name: editedProfileData.name,
           org_name: editedProfileData.org_name,
           address: editedProfileData.address,
           phone: editedProfileData.phone

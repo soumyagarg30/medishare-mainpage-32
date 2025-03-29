@@ -15,16 +15,16 @@ import { Loader2, ChevronDown, ChevronUp, UserCircle, Search, Clock, Bell, FileT
 import WelcomeMessage from "@/components/WelcomeMessage";
 
 interface DonatedMedicine {
-  id: number;  // Note: This is a number, not a string
+  id: string | number;
   medicine_name: string;
   quantity: number;
   expiry_date: string;
+  date_added: string;
   status: string;
   donor_entity_id: string;
   ngo_entity_id: string | null;
-  ingredients: string;
-  date_added: string;
   image_url: string;
+  ingredients: string;
   // Optional properties that will be added after fetching NGO data
   ngo_name?: string;
   ngo_address?: string;
@@ -124,29 +124,26 @@ const DonorDashboard = () => {
       
       console.log('Fetched donated medicines:', data);
       
-      let donations = data || [];
+      let medicines = (data || []) as unknown as DonatedMedicine[];
       
-      // For each donation, fetch NGO details if available
-      for (let i = 0; i < donations.length; i++) {
-        if (donations[i].ngo_entity_id) {
+      // For each medicine, fetch NGO details if available
+      for (let i = 0; i < medicines.length; i++) {
+        if (medicines[i].ngo_entity_id) {
           const { data: ngoData, error: ngoError } = await supabase
             .from('intermediary_ngo')
             .select('*')
-            .eq('entity_id', donations[i].ngo_entity_id)
+            .eq('entity_id', medicines[i].ngo_entity_id)
             .single();
           
           if (!ngoError && ngoData) {
-            donations[i] = {
-              ...donations[i],
-              ngo_name: ngoData.name || '',
-              ngo_address: ngoData.address || '',
-              ngo_phone: ngoData.phone || ''
-            };
+            medicines[i].ngo_name = ngoData.name || '';
+            medicines[i].ngo_address = ngoData.address || '';
+            medicines[i].ngo_phone = ngoData.phone || '';
           }
         }
       }
       
-      setDonatedMedicines(donations as DonatedMedicine[]);
+      setDonatedMedicines(medicines);
     } catch (error) {
       console.error('Error fetching donated medicines:', error);
       toast({
