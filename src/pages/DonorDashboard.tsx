@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -32,7 +31,7 @@ import { Loader2, ChevronDown, ChevronUp, Package, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 interface DonatedMedicine {
-  id: string | number; // Updated to accept both string and number
+  id: string | number;
   medicine_name: string;
   quantity: number;
   expiry_date: string;
@@ -41,7 +40,6 @@ interface DonatedMedicine {
   status: string;
   image_url: string;
   ngo_entity_id: string | null;
-  // Optional properties that will be added after fetching NGO data
   ngo_name?: string;
   ngo_address?: string;
   ngo_phone?: string;
@@ -56,22 +54,56 @@ const DonateTab = () => {
     medicine_name: "",
     quantity: 0,
     expiry_date: "",
-    ingredients: "",
+    ingredients: ""
   });
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [donorEntityId, setDonorEntityId] = useState<string | null>(null);
 
   useEffect(() => {
     const userData = getUser();
     if (userData) {
       setUser(userData);
-      fetchDonatedMedicines(userData.id);
+      
+      const fetchDonorId = async () => {
+        try {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('entity_id')
+            .eq('email', userData.email)
+            .single();
+          
+          if (userError) {
+            throw userError;
+          }
+          
+          const entityId = userData?.entity_id;
+          setDonorEntityId(entityId);
+          
+          if (entityId) {
+            await fetchDonatedMedicines(entityId);
+          }
+        } catch (error) {
+          console.error('Error fetching donor entity_id:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch user data",
+            variant: "destructive"
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchDonorId();
     }
   }, []);
 
   const fetchDonatedMedicines = async (donorId: string) => {
     try {
+      console.log('Fetching donated medicines for donor ID:', donorId);
+      
       const { data, error } = await supabase
         .from('donated_meds')
         .select('*')
@@ -81,9 +113,10 @@ const DonateTab = () => {
         throw error;
       }
       
+      console.log('Fetched donated medicines:', data);
+      
       let medicines: DonatedMedicine[] = data || [];
       
-      // For each medicine, fetch NGO details if available
       for (let i = 0; i < medicines.length; i++) {
         if (medicines[i].ngo_entity_id) {
           const { data: ngoData, error: ngoError } = await supabase
@@ -117,7 +150,6 @@ const DonateTab = () => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       
-      // Check if file is an image
       if (!file.type.includes('image/')) {
         toast({
           title: "Invalid File",
@@ -129,7 +161,6 @@ const DonateTab = () => {
       
       setUploadedImage(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -164,7 +195,6 @@ const DonateTab = () => {
       bucketExists = buckets?.some(bucket => bucket.name === 'ocr-images') ?? false;
       
       if (!bucketExists) {
-        // Create the bucket if it doesn't exist
         await supabase.storage.createBucket('ocr-images', {
           public: true
         });
@@ -174,7 +204,6 @@ const DonateTab = () => {
       throw new Error('Failed to prepare storage for image upload');
     }
     
-    // Upload file
     const { data, error } = await supabase.storage
       .from('ocr-images')
       .upload(fileName, file, {
@@ -184,7 +213,6 @@ const DonateTab = () => {
     
     if (error) throw error;
     
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from('ocr-images')
       .getPublicUrl(data.path);
@@ -195,7 +223,14 @@ const DonateTab = () => {
   const handleSubmitDonation = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) return;
+    if (!donorEntityId) {
+      toast({
+        title: "Error",
+        description: "Donor ID not found. Please try again later.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (!newDonation.medicine_name || !newDonation.quantity || !newDonation.expiry_date) {
       toast({
@@ -218,10 +253,8 @@ const DonateTab = () => {
     try {
       setUploading(true);
       
-      // Upload image to Supabase storage
-      const imageUrl = await uploadImage(uploadedImage, user.id);
+      const imageUrl = await uploadImage(uploadedImage, donorEntityId);
       
-      // Add donation to database
       const { error } = await supabase
         .from('donated_meds')
         .insert({
@@ -229,7 +262,7 @@ const DonateTab = () => {
           quantity: newDonation.quantity,
           expiry_date: newDonation.expiry_date,
           ingredients: newDonation.ingredients,
-          donor_entity_id: user.id,
+          donor_entity_id: donorEntityId,
           date_added: new Date().toISOString().split('T')[0],
           status: 'uploaded',
           image_url: imageUrl
@@ -237,7 +270,6 @@ const DonateTab = () => {
       
       if (error) throw error;
       
-      // Reset form
       setNewDonation({
         medicine_name: "",
         quantity: 0,
@@ -252,9 +284,7 @@ const DonateTab = () => {
         description: "Medicine donation submitted successfully"
       });
       
-      // Refresh donated medicines
-      fetchDonatedMedicines(user.id);
-      
+      fetchDonatedMedicines(donorEntityId);
     } catch (error) {
       console.error('Error submitting donation:', error);
       toast({
@@ -471,7 +501,6 @@ const DonorDashboard = () => {
   const [locationRequested, setLocationRequested] = useState(false);
 
   useEffect(() => {
-    // Check if user is authenticated
     if (!isAuthenticated()) {
       navigate("/sign-in");
       return;
@@ -485,11 +514,9 @@ const DonorDashboard = () => {
     
     setUser(userData);
 
-    // Check if we should prompt for location permission
     const locationPermissionAsked = localStorage.getItem("locationPermissionAsked");
     if (!locationPermissionAsked && !locationRequested) {
       setLocationRequested(true);
-      // Let the component render first before showing the toast
       setTimeout(() => {
         toast({
           title: "Enable Location",
@@ -517,12 +544,10 @@ const DonorDashboard = () => {
           <WelcomeMessage user={user} userTypeTitle="Donor" />
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            {/* Sidebar */}
             <div className="md:col-span-3">
               <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
             </div>
             
-            {/* Main Content */}
             <div className="md:col-span-9">
               {activeTab === "profile" && <ProfileTab user={user} />}
               {activeTab === "donate" && <DonateTab />}

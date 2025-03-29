@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -70,8 +69,32 @@ const RecipientDashboard = () => {
       }
       
       setUser(userData);
-      await fetchMedicineRequests(userData.id);
-      await fetchRecipientProfile(userData.id);
+      
+      // Get entity_id from users table based on email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('entity_id')
+        .eq('email', userData.email)
+        .single();
+      
+      if (userError) {
+        console.error('Error fetching user entity_id:', userError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch user data",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      const entityId = userData?.entity_id;
+      
+      if (entityId) {
+        await fetchMedicineRequests(entityId);
+        await fetchRecipientProfile(entityId);
+      }
+      
       setLoading(false);
     };
     
@@ -80,6 +103,8 @@ const RecipientDashboard = () => {
 
   const fetchMedicineRequests = async (recipientId: string) => {
     try {
+      console.log('Fetching medicine requests for recipient ID:', recipientId);
+      
       const { data, error } = await supabase
         .from('requested_meds')
         .select('*')
@@ -88,6 +113,8 @@ const RecipientDashboard = () => {
       if (error) {
         throw error;
       }
+      
+      console.log('Fetched medicine requests:', data);
       
       let requests: MedicineRequest[] = data || [];
       
@@ -121,6 +148,8 @@ const RecipientDashboard = () => {
 
   const fetchRecipientProfile = async (entityId: string) => {
     try {
+      console.log('Fetching recipient profile for entity ID:', entityId);
+      
       const { data, error } = await supabase
         .from('recipients')
         .select('*')
@@ -128,11 +157,31 @@ const RecipientDashboard = () => {
         .single();
       
       if (error) {
-        throw error;
+        if (error.code === 'PGRST116') {
+          // No profile found, create one
+          const newProfile: Partial<RecipientProfile> = {
+            entity_id: entityId,
+            name: user?.name || '',
+          };
+          
+          const { error: insertError } = await supabase
+            .from('recipients')
+            .insert(newProfile);
+          
+          if (insertError) {
+            throw insertError;
+          }
+          
+          setProfileData(newProfile as RecipientProfile);
+          setEditedProfileData(newProfile);
+        } else {
+          throw error;
+        }
+      } else {
+        console.log('Fetched recipient profile:', data);
+        setProfileData(data);
+        setEditedProfileData(data || {});
       }
-      
-      setProfileData(data);
-      setEditedProfileData(data || {});
     } catch (error) {
       console.error('Error fetching recipient profile:', error);
       toast({
@@ -204,13 +253,30 @@ const RecipientDashboard = () => {
     try {
       if (!user) return;
       
+      // Get entity_id from users table based on email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('entity_id')
+        .eq('email', user.email)
+        .single();
+      
+      if (userError) {
+        throw userError;
+      }
+      
+      const entityId = userData?.entity_id;
+      
+      if (!entityId) {
+        throw new Error('User entity ID not found');
+      }
+      
       const { error } = await supabase
         .from('requested_meds')
         .insert({
           medicine_name: newRequest.medicine_name,
           quantity: newRequest.quantity,
           need_by_date: newRequest.need_by_date,
-          recipient_entity_id: user.id,
+          recipient_entity_id: entityId,
           status: "uploaded"
         });
       
@@ -230,9 +296,7 @@ const RecipientDashboard = () => {
         need_by_date: ""
       });
       
-      if (user) {
-        await fetchMedicineRequests(user.id);
-      }
+      await fetchMedicineRequests(entityId);
     } catch (error) {
       console.error('Error submitting request:', error);
       toast({
@@ -253,7 +317,24 @@ const RecipientDashboard = () => {
 
   const handleSaveProfile = async () => {
     try {
-      if (!user || !editedProfileData) return;
+      if (!user || !editedProfileData || !profileData) return;
+      
+      // Get entity_id from users table based on email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('entity_id')
+        .eq('email', user.email)
+        .single();
+      
+      if (userError) {
+        throw userError;
+      }
+      
+      const entityId = userData?.entity_id;
+      
+      if (!entityId) {
+        throw new Error('User entity ID not found');
+      }
       
       const { error } = await supabase
         .from('recipients')
@@ -263,13 +344,16 @@ const RecipientDashboard = () => {
           address: editedProfileData.address,
           phone: editedProfileData.phone
         })
-        .eq('entity_id', user.id);
+        .eq('entity_id', entityId);
       
       if (error) {
         throw error;
       }
       
-      setProfileData(editedProfileData as RecipientProfile);
+      setProfileData({
+        ...profileData,
+        ...editedProfileData as RecipientProfile
+      });
       setIsEditing(false);
       toast({
         title: "Success",
@@ -303,7 +387,6 @@ const RecipientDashboard = () => {
           {user && <WelcomeMessage user={user} userTypeTitle="Recipient" />}
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            {/* Sidebar */}
             <div className="md:col-span-3">
               <Card>
                 <CardContent className="p-0">
@@ -348,7 +431,6 @@ const RecipientDashboard = () => {
               </Card>
             </div>
             
-            {/* Main Content */}
             <div className="md:col-span-9">
               {activeTab === "requests" && (
                 <Card>
