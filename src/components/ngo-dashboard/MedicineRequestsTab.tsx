@@ -113,7 +113,8 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
       
       toast({
         title: "Success",
-        description: `Medicine request ${action === 'approved' ? 'accepted' : 'rejected'} successfully`
+        description: `Medicine request ${action === 'approved' ? 'accepted' : 'rejected'} successfully`,
+        variant: "default"
       });
       
       // Update the local state to remove the processed request
