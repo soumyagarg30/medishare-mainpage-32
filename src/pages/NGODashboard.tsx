@@ -247,7 +247,7 @@ const NGODashboard = () => {
           ngo_entity_id: ngoEntityId,
           status: 'approved'
         })
-        .eq('id', medicineId)
+        .eq('id', parseInt(medicineId)) // Convert the string ID to a number
         .select();
       
       if (error) throw error;
