@@ -451,6 +451,7 @@ const RecipientDashboard = () => {
                             <div 
                               className={`p-4 cursor-pointer ${
                                 request.status === 'uploaded' ? 'bg-amber-50' : 
+                                request.status === 'approved' ? 'bg-blue-50' :
                                 request.status === 'received' ? 'bg-green-50' : 'bg-white'
                               }`}
                               onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
@@ -462,6 +463,7 @@ const RecipientDashboard = () => {
                                     <span 
                                       className={`px-2 py-1 text-xs rounded-full font-medium ${
                                         request.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
+                                        request.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                                         request.status === 'received' ? 'bg-green-100 text-green-800' : 
                                         'bg-gray-100 text-gray-800'
                                       }`}
@@ -472,18 +474,21 @@ const RecipientDashboard = () => {
                                   <div className="mt-1 text-sm text-gray-600">
                                     <p><span className="font-medium">Quantity:</span> {request.quantity}</p>
                                     <p><span className="font-medium">Needed by:</span> {new Date(request.need_by_date).toLocaleDateString()}</p>
+                                    <p><span className="font-medium">NGO Assigned:</span> {request.ngo_entity_id ? (request.ngo_name || 'Yes') : 'No NGO assigned yet'}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <Select 
                                     value={request.status} 
                                     onValueChange={(value) => handleRequestStatusChange(request.id, value)}
+                                    disabled={request.status === 'approved' && !request.ngo_entity_id}
                                   >
                                     <SelectTrigger className="w-[130px]">
                                       <SelectValue placeholder="Status" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="uploaded">Uploaded</SelectItem>
+                                      {request.ngo_entity_id && <SelectItem value="approved">Approved</SelectItem>}
                                       <SelectItem value="received">Received</SelectItem>
                                     </SelectContent>
                                   </Select>
@@ -610,6 +615,7 @@ const RecipientDashboard = () => {
                                   <span 
                                     className={`px-2 py-1 text-xs rounded-full font-medium ${
                                       request.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
+                                      request.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                                       request.status === 'received' ? 'bg-green-100 text-green-800' : 
                                       'bg-gray-100 text-gray-800'
                                     }`}
@@ -617,7 +623,7 @@ const RecipientDashboard = () => {
                                     {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                                   </span>
                                 </td>
-                                <td className="px-4 py-4 text-sm">{request.ngo_name || "Not assigned"}</td>
+                                <td className="px-4 py-4 text-sm">{request.ngo_entity_id ? (request.ngo_name || "Assigned") : "Not assigned"}</td>
                               </tr>
                             ))}
                           </tbody>
