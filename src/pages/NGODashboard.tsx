@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -26,6 +27,7 @@ import DonorsMap from "@/components/maps/DonorsMap";
 import ImpactChart from "@/components/charts/ImpactChart";
 import DonationChart from "@/components/charts/DonationChart";
 import DonorsNearMeTab from "@/components/ngo-dashboard/DonorsNearMeTab";
+import MedicineRequestsTab from "@/components/ngo-dashboard/MedicineRequestsTab";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -125,25 +127,11 @@ const impactData = {
   activeDonors: 24
 };
 
-interface MedicineRequest {
-  id: string;
-  medicine_name: string;
-  quantity: number;
-  need_by_date: string;
-  status: string;
-  recipient_entity_id: string;
-  ngo_entity_id: string | null;
-  recipient_name?: string;
-  recipient_address?: string;
-  recipient_phone?: string;
-}
-
 const NGODashboard = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [user, setUser] = useState<UserData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editableUserData, setEditableUserData] = useState<Partial<UserData>>({});
-  const [medicineRequests, setMedicineRequests] = useState<MedicineRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [ngoEntityId, setNgoEntityId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -187,8 +175,6 @@ const NGODashboard = () => {
         });
       } else if (userEntityData) {
         setNgoEntityId(userEntityData.entity_id);
-        // Fetch medicine requests after we have the NGO entity ID
-        await fetchMedicineRequests();
       }
       
       setLoading(false);
@@ -196,87 +182,6 @@ const NGODashboard = () => {
     
     checkAuth();
   }, [navigate]);
-
-  const fetchMedicineRequests = async () => {
-    try {
-      // Fetch all medicine requests with status "uploaded"
-      const { data, error } = await supabase
-        .from('requested_meds')
-        .select('*')
-        .eq('status', 'uploaded')
-        .is('ngo_entity_id', null);
-      
-      if (error) {
-        throw error;
-      }
-      
-      let requests: MedicineRequest[] = data || [];
-      
-      // For each request, fetch recipient details
-      for (let i = 0; i < requests.length; i++) {
-        const { data: recipientData, error: recipientError } = await supabase
-          .from('recipients')
-          .select('*')
-          .eq('entity_id', requests[i].recipient_entity_id)
-          .single();
-        
-        if (!recipientError && recipientData) {
-          requests[i].recipient_name = recipientData.name || '';
-          requests[i].recipient_address = recipientData.address || '';
-          requests[i].recipient_phone = recipientData.phone || '';
-        }
-      }
-      
-      setMedicineRequests(requests);
-    } catch (error) {
-      console.error('Error fetching medicine requests:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load medicine requests",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleApproveRequest = async (requestId: string) => {
-    if (!ngoEntityId) {
-      toast({
-        title: "Error",
-        description: "NGO information not found",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('requested_meds')
-        .update({ 
-          ngo_entity_id: ngoEntityId,
-          status: 'approved'
-        })
-        .eq('id', requestId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Success",
-        description: "Medicine request approved successfully"
-      });
-      
-      // Update the local state to remove the approved request
-      setMedicineRequests(prev => prev.filter(req => req.id !== requestId));
-    } catch (error) {
-      console.error('Error approving request:', error);
-      toast({
-        title: "Error",
-        description: "Failed to approve medicine request",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -681,70 +586,7 @@ const NGODashboard = () => {
                 </Card>
               )}
               
-              {activeTab === "requests" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Medicine Requests from Recipients</CardTitle>
-                    <CardDescription>Review and manage medicine requests from recipients</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {medicineRequests.length > 0 ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Medicine</TableHead>
-                              <TableHead>Quantity</TableHead>
-                              <TableHead>Needed By</TableHead>
-                              <TableHead>Recipient</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {medicineRequests.map((request) => (
-                              <TableRow key={request.id}>
-                                <TableCell className="font-medium">{request.medicine_name}</TableCell>
-                                <TableCell>{request.quantity}</TableCell>
-                                <TableCell>{new Date(request.need_by_date).toLocaleDateString()}</TableCell>
-                                <TableCell>
-                                  <div className="text-sm">
-                                    <p className="font-medium">{request.recipient_name}</p>
-                                    {request.recipient_address && <p className="text-gray-500">{request.recipient_address}</p>}
-                                    {request.recipient_phone && <p className="text-gray-500">{request.recipient_phone}</p>}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                                    onClick={() => handleApproveRequest(request.id)}
-                                  >
-                                    <Check size={16} />
-                                    Approve
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <div className="text-center py-8 flex flex-col items-center text-gray-500">
-                          <AlertTriangle className="h-12 w-12 text-amber-400 mb-2" />
-                          <p className="text-lg font-medium">No Medicine Requests</p>
-                          <p className="mt-1">There are currently no medicine requests from recipients that need your approval.</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {activeTab === "requests" && <MedicineRequestsTab ngoEntityId={ngoEntityId} />}
               
               {activeTab === "impact" && (
                 <Card>
@@ -821,6 +663,17 @@ const NGODashboard = () => {
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <div className
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
+};
+
+export default NGODashboard;
