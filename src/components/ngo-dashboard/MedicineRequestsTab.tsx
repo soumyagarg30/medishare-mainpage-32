@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, AlertTriangle } from "lucide-react";
+import { Check, X, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -75,8 +75,8 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
     }
   };
 
-  const handleApproveRequest = async (requestId: string) => {
-    if (!ngoEntityId) {
+  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
+    if (!ngoEntityId && action === 'approved') {
       toast({
         title: "Error",
         description: "NGO information not found",
@@ -86,15 +86,21 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
     }
     
     try {
-      console.log(`Approving request ${requestId} with NGO entity ID ${ngoEntityId}`);
+      console.log(`Processing request ${requestId} with action: ${action} and NGO entity ID: ${ngoEntityId}`);
       
-      // Update the request with ngo_entity_id and status
+      // Update the request with ngo_entity_id (if approving) and status
+      const updateData: { status: string; ngo_entity_id?: string } = { 
+        status: action
+      };
+
+      // Only set the NGO entity ID if approving
+      if (action === 'approved') {
+        updateData.ngo_entity_id = ngoEntityId as string;
+      }
+      
       const { data, error } = await supabase
         .from('requested_meds')
-        .update({ 
-          ngo_entity_id: ngoEntityId,
-          status: 'approved'
-        })
+        .update(updateData)
         .eq('id', requestId)
         .select();
       
@@ -107,16 +113,16 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
       
       toast({
         title: "Success",
-        description: "Medicine request approved successfully"
+        description: `Medicine request ${action === 'approved' ? 'approved' : 'rejected'} successfully`
       });
       
-      // Update the local state to remove the approved request
+      // Update the local state to remove the processed request
       setMedicineRequests(prev => prev.filter(req => req.id !== requestId));
     } catch (error) {
-      console.error('Error approving request:', error);
+      console.error(`Error ${action === 'approved' ? 'approving' : 'rejecting'} request:`, error);
       toast({
         title: "Error",
-        description: "Failed to approve medicine request",
+        description: `Failed to ${action === 'approved' ? 'approve' : 'reject'} medicine request`,
         variant: "destructive"
       });
     }
@@ -234,15 +240,26 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                        onClick={() => handleApproveRequest(request.id)}
-                      >
-                        <Check size={16} />
-                        Approve
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
+                          onClick={() => handleRequestAction(request.id, 'approved')}
+                        >
+                          <Check size={16} />
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                          onClick={() => handleRequestAction(request.id, 'rejected')}
+                        >
+                          <X size={16} />
+                          Reject
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
