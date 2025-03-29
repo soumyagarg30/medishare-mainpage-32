@@ -241,7 +241,6 @@ const NGODashboard = () => {
     }
     
     try {
-      // No need to convert medicineId to number since we changed the interface
       const { data, error } = await supabase
         .from('donated_meds')
         .update({
@@ -627,7 +626,7 @@ const NGODashboard = () => {
                 </Card>
               )}
               
-              {activeTab === "requests" && <MedicineRequestsTab />}
+              {activeTab === "requests" && <MedicineRequestsTab ngoEntityId={ngoEntityId} />}
               
               {activeTab === "impact" && (
                 <Card>
