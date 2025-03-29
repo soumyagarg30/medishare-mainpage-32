@@ -113,16 +113,16 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
       
       toast({
         title: "Success",
-        description: `Medicine request ${action === 'approved' ? 'approved' : 'rejected'} successfully`
+        description: `Medicine request ${action === 'approved' ? 'accepted' : 'rejected'} successfully`
       });
       
       // Update the local state to remove the processed request
       setMedicineRequests(prev => prev.filter(req => req.id !== requestId));
     } catch (error) {
-      console.error(`Error ${action === 'approved' ? 'approving' : 'rejecting'} request:`, error);
+      console.error(`Error ${action === 'approved' ? 'accepting' : 'rejecting'} request:`, error);
       toast({
         title: "Error",
-        description: `Failed to ${action === 'approved' ? 'approve' : 'reject'} medicine request`,
+        description: `Failed to ${action === 'approved' ? 'accept' : 'reject'} medicine request`,
         variant: "destructive"
       });
     }
@@ -248,7 +248,7 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
                           onClick={() => handleRequestAction(request.id, 'approved')}
                         >
                           <Check size={16} />
-                          Approve
+                          Accept
                         </Button>
                         <Button
                           variant="outline"
