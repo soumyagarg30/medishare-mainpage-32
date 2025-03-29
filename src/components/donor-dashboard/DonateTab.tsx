@@ -48,6 +48,37 @@ const DonateTab = () => {
     };
 
     fetchDonorId();
+    
+    // Check if the ocr-images bucket exists, create if it doesn't
+    const checkAndCreateBucket = async () => {
+      try {
+        const { data: buckets, error } = await supabase.storage.listBuckets();
+        
+        if (error) {
+          console.error("Error checking buckets:", error);
+          return;
+        }
+        
+        const bucketExists = buckets?.some(bucket => bucket.name === 'ocr-images');
+        
+        if (!bucketExists) {
+          console.log("Bucket doesn't exist, creating it");
+          const { data, error: createError } = await supabase.storage.createBucket('ocr-images', {
+            public: true
+          });
+          
+          if (createError) {
+            console.error("Error creating bucket:", createError);
+          } else {
+            console.log("Bucket created successfully:", data);
+          }
+        }
+      } catch (err) {
+        console.error("Error in bucket check/creation:", err);
+      }
+    };
+    
+    checkAndCreateBucket();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -120,23 +151,7 @@ const DonateTab = () => {
       const currentDate = new Date().toISOString().split('T')[0];
       const fileExt = newDonation.image_file.name.split('.').pop();
       const fileName = `${donorEntityId}/${currentDate}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `${fileName}`;
-      
-      // Ensure the bucket exists before uploading
-      try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const bucketExists = buckets?.some(bucket => bucket.name === 'ocr-images');
-        
-        if (!bucketExists) {
-          console.log("Bucket doesn't exist, attempting to create it");
-          // This should already be created via SQL but just in case
-          await supabase.storage.createBucket('ocr-images', {
-            public: true
-          });
-        }
-      } catch (err) {
-        console.error("Error checking/creating bucket:", err);
-      }
+      const filePath = fileName;
       
       console.log("Uploading image to path:", filePath);
       
