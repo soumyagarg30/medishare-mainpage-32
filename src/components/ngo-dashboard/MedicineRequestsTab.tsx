@@ -1,281 +1,253 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, X, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
-interface MedicineRequest {
-  id: string;
-  medicine_name: string;
-  quantity: number;
-  need_by_date: string;
-  status: string;
-  recipient_entity_id: string;
-  ngo_entity_id: string | null;
-  recipient_name?: string;
-  recipient_address?: string;
-  recipient_phone?: string;
-}
+// Example data - in a real app, this would come from an API
+const initialRequests = [
+  {
+    id: 1,
+    requester: "City Hospital",
+    medicineName: "Paracetamol",
+    quantity: "1000 tablets",
+    requestDate: "2023-05-15",
+    status: "pending",
+    priority: "high",
+  },
+  {
+    id: 2,
+    requester: "Rural Clinic",
+    medicineName: "Amoxicillin",
+    quantity: "500 capsules",
+    requestDate: "2023-05-10",
+    status: "pending",
+    priority: "medium",
+  },
+  {
+    id: 3,
+    requester: "Community Health Center",
+    medicineName: "Insulin",
+    quantity: "50 vials",
+    requestDate: "2023-05-05",
+    status: "approved",
+    priority: "critical",
+  },
+  {
+    id: 4,
+    requester: "School Clinic",
+    medicineName: "Vitamin B Complex",
+    quantity: "200 tablets",
+    requestDate: "2023-05-01",
+    status: "rejected",
+    priority: "low",
+    reason: "Out of stock",
+  },
+];
 
-interface RecipientDetails {
-  name: string;
-  address: string | null;
-  phone: string | null;
-}
+const MedicineRequestsTab = () => {
+  const [requests, setRequests] = useState(initialRequests);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
 
-const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) => {
-  const [medicineRequests, setMedicineRequests] = useState<MedicineRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const handleReject = () => {
+    if (selectedRequest) {
+      setRequests(
+        requests.map((req) =>
+          req.id === selectedRequest.id
+            ? { ...req, status: "rejected", reason: rejectReason }
+            : req
+        )
+      );
 
-  const fetchMedicineRequests = async () => {
-    try {
-      console.log("Fetching medicine requests");
-      // Fetch all medicine requests with status "uploaded"
-      const { data, error } = await supabase
-        .from('requested_meds')
-        .select('*')
-        .eq('status', 'uploaded')
-        .is('ngo_entity_id', null);
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Fetched medicine requests:", data);
-      let requests: MedicineRequest[] = data || [];
-      
-      // For each request, fetch recipient details
-      for (let i = 0; i < requests.length; i++) {
-        const { data: recipientData, error: recipientError } = await supabase
-          .from('recipients')
-          .select('*')
-          .eq('entity_id', requests[i].recipient_entity_id)
-          .single();
-        
-        if (!recipientError && recipientData) {
-          requests[i].recipient_name = recipientData.name || '';
-          requests[i].recipient_address = recipientData.address || '';
-          requests[i].recipient_phone = recipientData.phone || '';
-        }
-      }
-      
-      setMedicineRequests(requests);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching medicine requests:', error);
       toast({
-        title: "Error",
-        description: "Failed to load medicine requests",
-        variant: "destructive"
+        title: "Request rejected",
+        description: `Medicine request from ${selectedRequest.requester} has been rejected.`,
       });
-      setLoading(false);
+
+      setRejectReason("");
+      setRejectDialogOpen(false);
     }
   };
 
-  const handleRequestAction = async (requestId: string, action: 'approved' | 'rejected') => {
-    if (!ngoEntityId && action === 'approved') {
-      toast({
-        title: "Error",
-        description: "NGO information not found",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      console.log(`Processing request ${requestId} with action: ${action} and NGO entity ID: ${ngoEntityId}`);
-      
-      // Update the request with ngo_entity_id (if approving) and status
-      const updateData: { status: string; ngo_entity_id?: string } = { 
-        status: action
-      };
+  const handleAccept = () => {
+    if (selectedRequest) {
+      setRequests(
+        requests.map((req) =>
+          req.id === selectedRequest.id
+            ? { ...req, status: "approved" }
+            : req
+        )
+      );
 
-      // Only set the NGO entity ID if approving
-      if (action === 'approved') {
-        updateData.ngo_entity_id = ngoEntityId as string;
-      }
-      
-      const { data, error } = await supabase
-        .from('requested_meds')
-        .update(updateData)
-        .eq('id', requestId)
-        .select();
-      
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
-      }
-      
-      console.log("Update successful:", data);
-      
       toast({
-        title: "Success",
-        description: `Medicine request ${action === 'approved' ? 'accepted' : 'rejected'} successfully`,
-        variant: "default"
+        title: "Request accepted",
+        description: `Medicine request from ${selectedRequest.requester} has been approved.`,
       });
-      
-      // Update the local state to remove the processed request
-      setMedicineRequests(prev => prev.filter(req => req.id !== requestId));
-    } catch (error) {
-      console.error(`Error ${action === 'approved' ? 'accepting' : 'rejecting'} request:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to ${action === 'approved' ? 'accept' : 'reject'} medicine request`,
-        variant: "destructive"
-      });
+
+      setAcceptDialogOpen(false);
     }
   };
 
-  // Set up real-time subscription for medicine requests
-  useEffect(() => {
-    fetchMedicineRequests();
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "critical":
+        return <Badge className="bg-red-500">Critical</Badge>;
+      case "high":
+        return <Badge className="bg-orange-500">High</Badge>;
+      case "medium":
+        return <Badge className="bg-yellow-500">Medium</Badge>;
+      case "low":
+        return <Badge className="bg-green-500">Low</Badge>;
+      default:
+        return <Badge>{priority}</Badge>;
+    }
+  };
 
-    // Subscribe to changes on the requested_meds table
-    const channel = supabase
-      .channel('medicine-requests-changes')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'requested_meds',
-          filter: 'status=eq.uploaded'
-        }, 
-        (payload) => {
-          console.log('New medicine request:', payload);
-          // Fetch the new request with recipient details
-          fetchRequestWithRecipientDetails(payload.new as MedicineRequest);
-        }
-      )
-      .on('postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'requested_meds'
-        },
-        (payload) => {
-          console.log('Medicine request updated:', payload);
-          // Update the request in the local state
-          if (payload.new.ngo_entity_id) {
-            setMedicineRequests(prev => prev.filter(req => req.id !== payload.new.id));
-          }
-        }
-      )
-      .subscribe();
-
-    console.log("Subscribed to real-time updates");
-
-    // Clean up subscription when component unmounts
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [ngoEntityId]);
-
-  const fetchRequestWithRecipientDetails = async (request: MedicineRequest) => {
-    try {
-      const { data: recipientData, error: recipientError } = await supabase
-        .from('recipients')
-        .select('*')
-        .eq('entity_id', request.recipient_entity_id)
-        .single();
-      
-      if (recipientError) {
-        console.error('Error fetching recipient details:', recipientError);
-        return;
-      }
-
-      const requestWithDetails: MedicineRequest = {
-        ...request,
-        recipient_name: recipientData.name || '',
-        recipient_address: recipientData.address || '',
-        recipient_phone: recipientData.phone || ''
-      };
-
-      // Add the new request to the state
-      setMedicineRequests(prev => [...prev, requestWithDetails]);
-    } catch (error) {
-      console.error('Error fetching request with details:', error);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge className="bg-green-500">Approved</Badge>;
+      case "pending":
+        return <Badge className="bg-yellow-500">Pending</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-500">Rejected</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Medicine Requests from Recipients</CardTitle>
-        <CardDescription>Review and manage medicine requests from recipients</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {loading ? (
-            <div className="text-center py-6">Loading medicine requests...</div>
-          ) : medicineRequests.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Medicine</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Needed By</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {medicineRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell className="font-medium">{request.medicine_name}</TableCell>
-                    <TableCell>{request.quantity}</TableCell>
-                    <TableCell>{new Date(request.need_by_date).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <p className="font-medium">{request.recipient_name}</p>
-                        {request.recipient_address && <p className="text-gray-500">{request.recipient_address}</p>}
-                        {request.recipient_phone && <p className="text-gray-500">{request.recipient_phone}</p>}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                          onClick={() => handleRequestAction(request.id, 'approved')}
-                        >
-                          <Check size={16} />
-                          Accept
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                          onClick={() => handleRequestAction(request.id, 'rejected')}
-                        >
-                          <X size={16} />
-                          Reject
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 flex flex-col items-center text-gray-500">
-              <AlertTriangle className="h-12 w-12 text-amber-400 mb-2" />
-              <p className="text-lg font-medium">No Medicine Requests</p>
-              <p className="mt-1">There are currently no medicine requests from recipients that need your approval.</p>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Medicine Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {requests.map((request) => (
+              <div
+                key={request.id}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md"
+              >
+                <div>
+                  <h3 className="font-medium">{request.medicineName}</h3>
+                  <p className="text-sm text-gray-500">Requester: {request.requester}</p>
+                  <p className="text-sm text-gray-500">Quantity: {request.quantity}</p>
+                  <div className="mt-2">{getPriorityBadge(request.priority)}</div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Requested on: {request.requestDate}
+                  </p>
+                  <div className="mt-2">{getStatusBadge(request.status)}</div>
+                  {request.reason && (
+                    <p className="text-sm text-red-500 mt-1">Reason: {request.reason}</p>
+                  )}
+                </div>
+                <div className="flex flex-col space-y-2 justify-end">
+                  {request.status === "pending" && (
+                    <>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-green-500 hover:bg-green-600"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setAcceptDialogOpen(true);
+                        }}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setRejectDialogOpen(true);
+                        }}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                  >
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Medicine Request</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="mb-4">
+              You are about to reject the medicine request for{" "}
+              <span className="font-medium">{selectedRequest?.medicineName}</span> from{" "}
+              <span className="font-medium">{selectedRequest?.requester}</span>.
+            </p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason for rejection:</label>
+              <Textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Please provide a reason for rejecting this request..."
+              />
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReject}>
+              Reject Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Accept Dialog */}
+      <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Accept Medicine Request</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>
+              You are about to accept the medicine request for{" "}
+              <span className="font-medium">{selectedRequest?.medicineName}</span> from{" "}
+              <span className="font-medium">{selectedRequest?.requester}</span>.
+            </p>
+            <p className="mt-4">
+              This will allow the requester to receive {selectedRequest?.quantity} of {selectedRequest?.medicineName}.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcceptDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-green-500 hover:bg-green-600" onClick={handleAccept}>
+              Accept Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
