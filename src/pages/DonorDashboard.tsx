@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getUser, isAuthenticated } from "@/utils/auth";
+import { getUser, isAuthenticated, UserData } from "@/utils/auth";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import WelcomeMessage from "@/components/WelcomeMessage";
@@ -16,7 +16,7 @@ import Sidebar from "@/components/donor-dashboard/Sidebar";
 const DonorDashboard = () => {
   const [activeTab, setActiveTab] = useState("donations");
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<UserData | null>(null);
   
   const navigate = useNavigate();
 
@@ -64,7 +64,7 @@ const DonorDashboard = () => {
             <div className="md:col-span-9">
               {activeTab === "donations" && <HistoryTab />}
               {activeTab === "new-donation" && <DonateTab />}
-              {activeTab === "profile" && <ProfileTab />}
+              {activeTab === "profile" && user && <ProfileTab user={user} />}
               {activeTab === "notifications" && (
                 <div className="text-center py-8 text-gray-500">
                   <p>No notifications available at this time.</p>
