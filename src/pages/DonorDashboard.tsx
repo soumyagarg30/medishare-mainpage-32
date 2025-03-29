@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,7 +16,7 @@ import { Loader2, ChevronDown, ChevronUp, UserCircle, Search, Clock, Bell, FileT
 import WelcomeMessage from "@/components/WelcomeMessage";
 
 interface DonatedMedicine {
-  id: string | number;
+  id: number; // Changed back to number for consistency with state
   medicine_name: string;
   quantity: number;
   expiry_date: string;
@@ -124,7 +125,11 @@ const DonorDashboard = () => {
       
       console.log('Fetched donated medicines:', data);
       
-      let medicines = (data || []) as unknown as DonatedMedicine[];
+      // Convert all data to match the DonatedMedicine interface, ensuring id is a number
+      let medicines = (data || []).map(item => ({
+        ...item,
+        id: typeof item.id === 'string' ? parseInt(item.id, 10) : item.id
+      })) as DonatedMedicine[];
       
       // For each medicine, fetch NGO details if available
       for (let i = 0; i < medicines.length; i++) {
@@ -545,6 +550,7 @@ const DonorDashboard = () => {
                       <div className="space-y-4">
                         {donatedMedicines.map((donation) => (
                           <div key={donation.id} className="border rounded-lg overflow-hidden">
+                            {/* When we click on a donation to expand it, we ensure we're working with numbers */}
                             <div 
                               className={`p-4 cursor-pointer ${
                                 donation.status === 'uploaded' ? 'bg-amber-50' : 
