@@ -14,6 +14,7 @@ const DonateTab = () => {
   const [donorEntityId, setDonorEntityId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [recentDonations, setRecentDonations] = useState<any[]>([]);
   
   const [newDonation, setNewDonation] = useState({
     medicine_name: "",
@@ -36,6 +37,27 @@ const DonateTab = () => {
         if (!error && data) {
           setDonorEntityId(data.entity_id);
           console.log("Donor entity ID fetched:", data.entity_id);
+          
+          // Fetch recent donations for this donor
+          fetchRecentDonations(data.entity_id);
+          
+          // Set up real-time subscription for this donor's donations
+          const donationsChannel = supabase
+            .channel('donated_meds_changes')
+            .on('postgres_changes', {
+              event: '*', 
+              schema: 'public',
+              table: 'donated_meds',
+              filter: `donor_entity_id=eq.${data.entity_id}`
+            }, (payload) => {
+              console.log('Real-time update received:', payload);
+              fetchRecentDonations(data.entity_id);
+            })
+            .subscribe();
+            
+          return () => {
+            supabase.removeChannel(donationsChannel);
+          };
         } else {
           console.error('Error fetching donor ID:', error);
           toast({
@@ -48,38 +70,26 @@ const DonateTab = () => {
     };
 
     fetchDonorId();
-    
-    // Check if the ocr-images bucket exists, create if it doesn't
-    const checkAndCreateBucket = async () => {
-      try {
-        const { data: buckets, error } = await supabase.storage.listBuckets();
-        
-        if (error) {
-          console.error("Error checking buckets:", error);
-          return;
-        }
-        
-        const bucketExists = buckets?.some(bucket => bucket.name === 'ocr-images');
-        
-        if (!bucketExists) {
-          console.log("Bucket doesn't exist, creating it");
-          const { data, error: createError } = await supabase.storage.createBucket('ocr-images', {
-            public: true
-          });
-          
-          if (createError) {
-            console.error("Error creating bucket:", createError);
-          } else {
-            console.log("Bucket created successfully:", data);
-          }
-        }
-      } catch (err) {
-        console.error("Error in bucket check/creation:", err);
-      }
-    };
-    
-    checkAndCreateBucket();
   }, []);
+  
+  const fetchRecentDonations = async (entityId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('donated_meds')
+        .select('*')
+        .eq('donor_entity_id', entityId)
+        .order('date_added', { ascending: false })
+        .limit(3);
+        
+      if (error) {
+        throw error;
+      }
+      
+      setRecentDonations(data || []);
+    } catch (err) {
+      console.error("Error fetching recent donations:", err);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -151,16 +161,15 @@ const DonateTab = () => {
       const currentDate = new Date().toISOString().split('T')[0];
       const fileExt = newDonation.image_file.name.split('.').pop();
       const fileName = `${donorEntityId}/${currentDate}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = fileName;
       
-      console.log("Uploading image to path:", filePath);
+      console.log("Uploading image to path:", fileName);
       
-      // Upload image to Supabase storage
+      // Upload image to Supabase storage with upsert set to true
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('ocr-images')
-        .upload(filePath, newDonation.image_file, {
+        .upload(fileName, newDonation.image_file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true // Changed from false to true
         });
       
       if (uploadError) {
@@ -173,7 +182,7 @@ const DonateTab = () => {
       // Get the public URL for the uploaded image
       const { data: publicUrlData } = supabase.storage
         .from('ocr-images')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
       
       const imageUrl = publicUrlData.publicUrl;
       console.log("Generated public URL:", imageUrl);
@@ -190,15 +199,12 @@ const DonateTab = () => {
           status: "uploaded",
           date_added: currentDate,
           image_url: imageUrl
-        })
-        .select();
+        });
       
       if (donationError) {
         console.error("Database insert error:", donationError);
         throw donationError;
       }
-      
-      console.log("Donation record inserted successfully:", donationData);
       
       toast({
         title: "Success",
@@ -214,6 +220,9 @@ const DonateTab = () => {
         image_file: null
       });
       setImagePreview(null);
+      
+      // Refresh recent donations
+      fetchRecentDonations(donorEntityId);
       
     } catch (error) {
       console.error('Error submitting donation:', error);
@@ -326,6 +335,32 @@ const DonateTab = () => {
             </Button>
           </div>
         </form>
+
+        {recentDonations.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-medium mb-3">Recent Donations</h3>
+            <div className="space-y-3">
+              {recentDonations.map((donation) => (
+                <div key={donation.id} className="border rounded p-3 bg-gray-50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{donation.medicine_name}</p>
+                      <p className="text-sm text-gray-600">Quantity: {donation.quantity}</p>
+                      <p className="text-sm text-gray-600">Added: {new Date(donation.date_added).toLocaleDateString()}</p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      donation.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
+                      donation.status === 'received' ? 'bg-green-100 text-green-800' : 
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {donation.status.charAt(0).toUpperCase() + donation.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
