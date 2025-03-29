@@ -119,21 +119,6 @@ const DonateTab = () => {
       const fileName = `${donorEntityId}/${currentDate}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `${fileName}`;
       
-      // Check if storage bucket exists, create if it doesn't
-      const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('ocr-images');
-      
-      if (bucketError && bucketError.message.includes('not found')) {
-        const { error: createBucketError } = await supabase.storage.createBucket('ocr-images', {
-          public: true
-        });
-        
-        if (createBucketError) {
-          throw createBucketError;
-        }
-      } else if (bucketError) {
-        throw bucketError;
-      }
-      
       // Upload image to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('ocr-images')
@@ -172,13 +157,6 @@ const DonateTab = () => {
       if (donationError) {
         throw donationError;
       }
-      
-      // TODO: Call OCR API with the image URL (endpoint will be provided later)
-      // const ocrResponse = await fetch('OCR_API_ENDPOINT_HERE', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ imageUrl })
-      // });
       
       toast({
         title: "Success",
