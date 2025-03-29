@@ -181,11 +181,15 @@ const MedicineRequestsTab = ({ recipientEntityId }: { recipientEntityId: string 
 
                 if (ngoError) throw ngoError;
 
+                // Create a properly typed updated request object
+                const updatedRequest: MedicineRequest = {
+                  ...payload.new as MedicineRequest,
+                  ngo_name: ngoData?.name || null
+                };
+
                 // Update the request in the local state
                 setRequests(prev => prev.map(req => 
-                  req.id === payload.new.id 
-                    ? { ...payload.new, ngo_name: ngoData?.name || null } 
-                    : req
+                  req.id === payload.new.id ? updatedRequest : req
                 ));
 
                 toast({
