@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUser } from "@/utils/auth";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface DonatedMedicine {
   id: number;
@@ -50,10 +49,7 @@ const HistoryTab = () => {
             description: "Failed to load donor information",
             variant: "destructive"
           });
-          setLoading(false);
         }
-      } else {
-        setLoading(false);
       }
     };
 
@@ -62,19 +58,14 @@ const HistoryTab = () => {
 
   const fetchDonatedMedicines = async (donorId: string) => {
     try {
-      console.log('Fetching donated medicines for donor ID:', donorId);
-      
       const { data, error } = await supabase
         .from('donated_meds')
         .select('*')
-        .eq('donor_entity_id', donorId)
-        .order('date_added', { ascending: false });
+        .eq('donor_entity_id', donorId);
       
       if (error) {
         throw error;
       }
-      
-      console.log('Fetched donated medicines:', data);
       
       let medicines = data as DonatedMedicine[];
       
@@ -164,7 +155,7 @@ const HistoryTab = () => {
         }
       }
       
-      setDonatedMedicines(prev => [donation, ...prev]);
+      setDonatedMedicines(prev => [...prev, donation]);
     } catch (error) {
       console.error('Error fetching donation with NGO details:', error);
     }
@@ -198,48 +189,6 @@ const HistoryTab = () => {
     }
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'uploaded':
-        return "bg-amber-100 text-amber-800";
-      case 'received':
-        return "bg-green-100 text-green-800";
-      case 'pending':
-        return "bg-blue-100 text-blue-800";
-      case 'rejected':
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Donation History</CardTitle>
-          <CardDescription>Loading your past donations...</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="border rounded-lg p-4">
-                <div className="flex justify-between">
-                  <div>
-                    <Skeleton className="h-6 w-32 mb-2" />
-                    <Skeleton className="h-4 w-48 mb-1" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                  <Skeleton className="h-8 w-8" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -247,12 +196,14 @@ const HistoryTab = () => {
         <CardDescription>View your past donations</CardDescription>
       </CardHeader>
       <CardContent>
-        {donatedMedicines.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-4">Loading donation history...</div>
+        ) : donatedMedicines.length > 0 ? (
           <div className="space-y-4">
             {donatedMedicines.map((donation) => (
               <div key={donation.id} className="border rounded-lg overflow-hidden">
                 <div 
-                  className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  className={`p-4 cursor-pointer ${
                     donation.status === 'uploaded' ? 'bg-amber-50' : 
                     donation.status === 'received' ? 'bg-green-50' : 'bg-white'
                   }`}
@@ -262,9 +213,15 @@ const HistoryTab = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-lg">{donation.medicine_name}</h3>
-                        <Badge className={getStatusBadgeColor(donation.status)}>
+                        <span 
+                          className={`px-2 py-1 text-xs rounded-full font-medium ${
+                            donation.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
+                            donation.status === 'received' ? 'bg-green-100 text-green-800' : 
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
                           {donation.status.charAt(0).toUpperCase() + donation.status.slice(1)}
-                        </Badge>
+                        </span>
                       </div>
                       <div className="mt-1 text-sm text-gray-600">
                         <p><span className="font-medium">Quantity:</span> {donation.quantity}</p>
@@ -302,18 +259,7 @@ const HistoryTab = () => {
                     )}
                     {donation.image_url && (
                       <div className="mt-3">
-                        <h4 className="font-medium text-sm text-gray-700 mb-1 flex items-center">
-                          Medicine Image
-                          <a 
-                            href={donation.image_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="ml-2 inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            <ExternalLink size={12} className="mr-1" />
-                            View full size
-                          </a>
-                        </h4>
+                        <h4 className="font-medium text-sm text-gray-700 mb-1">Medicine Image</h4>
                         <img 
                           src={donation.image_url} 
                           alt={`${donation.medicine_name} image`} 
