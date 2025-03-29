@@ -13,13 +13,26 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Enable real-time subscriptions for the requested_meds table
 const configureRealtimeForMedicineRequests = async () => {
-  await supabase.from('requested_meds')
-    .on('INSERT', (payload) => {
-      console.log('New medicine request:', payload);
-    })
-    .on('UPDATE', (payload) => {
-      console.log('Medicine request updated:', payload);
-    })
+  await supabase
+    .channel('requested-meds-changes')
+    .on('postgres_changes', 
+      { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'requested_meds' 
+      }, 
+      (payload) => {
+        console.log('New medicine request:', payload);
+      })
+    .on('postgres_changes', 
+      { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'requested_meds' 
+      }, 
+      (payload) => {
+        console.log('Medicine request updated:', payload);
+      })
     .subscribe();
 };
 

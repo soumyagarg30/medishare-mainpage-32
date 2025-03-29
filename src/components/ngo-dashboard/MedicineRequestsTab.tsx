@@ -84,6 +84,7 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
     }
     
     try {
+      // Changed status to use 'approved' instead of dynamically setting it
       const { error } = await supabase
         .from('requested_meds')
         .update({ 
@@ -168,7 +169,7 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
         return;
       }
 
-      const requestWithDetails = {
+      const requestWithDetails: MedicineRequest = {
         ...request,
         recipient_name: recipientData.name || '',
         recipient_address: recipientData.address || '',
