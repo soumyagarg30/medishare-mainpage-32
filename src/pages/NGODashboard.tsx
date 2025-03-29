@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -33,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DonatedMedicine {
-  id: string;
+  id: string;  // Changed from 'number' to 'string' to match the interface
   medicine_name: string | null;
   quantity: number | null;
   donor_entity_id: string;
@@ -42,6 +41,7 @@ interface DonatedMedicine {
   status: string | null;
   date_added: string | null;
   ingredients: string | null;
+  image_url: string | null;  // Added to match Supabase schema
   donor_name?: string;
 }
 
@@ -195,36 +195,40 @@ const NGODashboard = () => {
         .select('*')
         .eq('status', 'uploaded')
         .is('ngo_entity_id', null);
+    
+    if (error) throw error;
+    
+    // Convert the id property from number to string to match the interface
+    let medicines: DonatedMedicine[] = data ? data.map(med => ({
+      ...med,
+      id: med.id.toString()  // Convert number to string
+    })) : [];
+    
+    // Fetch donor information for each medicine
+    for (let i = 0; i < medicines.length; i++) {
+      const { data: donorData, error: donorError } = await supabase
+        .from('donors')
+        .select('name, org_name')
+        .eq('entity_id', medicines[i].donor_entity_id)
+        .single();
       
-      if (error) throw error;
-      
-      let medicines: DonatedMedicine[] = data || [];
-      
-      // Fetch donor information for each medicine
-      for (let i = 0; i < medicines.length; i++) {
-        const { data: donorData, error: donorError } = await supabase
-          .from('donors')
-          .select('name, org_name')
-          .eq('entity_id', medicines[i].donor_entity_id)
-          .single();
-        
-        if (!donorError && donorData) {
-          medicines[i].donor_name = donorData.org_name || donorData.name;
-        }
+      if (!donorError && donorData) {
+        medicines[i].donor_name = donorData.org_name || donorData.name;
       }
-      
-      setAvailableMedicines(medicines);
-    } catch (error) {
-      console.error('Error fetching available medicines:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load available medicines",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingMedicines(false);
     }
-  };
+    
+    setAvailableMedicines(medicines);
+  } catch (error) {
+    console.error('Error fetching available medicines:', error);
+    toast({
+      title: "Error",
+      description: "Failed to load available medicines",
+      variant: "destructive"
+    });
+  } finally {
+    setLoadingMedicines(false);
+  }
+};
 
   const handleRequestMedicine = async (medicineId: string) => {
     if (!ngoEntityId) {
@@ -237,6 +241,7 @@ const NGODashboard = () => {
     }
     
     try {
+      // No need to convert medicineId to number since we changed the interface
       const { data, error } = await supabase
         .from('donated_meds')
         .update({
@@ -622,7 +627,7 @@ const NGODashboard = () => {
                 </Card>
               )}
               
-              {activeTab === "requests" && <MedicineRequestsTab ngoEntityId={ngoEntityId} />}
+              {activeTab === "requests" && <MedicineRequestsTab />}
               
               {activeTab === "impact" && (
                 <Card>

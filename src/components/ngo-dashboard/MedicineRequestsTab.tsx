@@ -48,7 +48,13 @@ const initialRequests = [
   },
 ];
 
-const MedicineRequestsTab = () => {
+// We're not actually using ngoEntityId in this component currently,
+// so we can make it optional to avoid breaking existing usage
+interface MedicineRequestsTabProps {
+  ngoEntityId?: string;
+}
+
+const MedicineRequestsTab: React.FC<MedicineRequestsTabProps> = () => {
   const [requests, setRequests] = useState(initialRequests);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
