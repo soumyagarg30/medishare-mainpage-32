@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, UserCircle, LogOut } from "lucide-react";
@@ -14,7 +13,6 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { isAuthenticated, getUser, logoutUser, UserType } from "@/utils/auth";
 import { getRedirectPath } from "@/utils/routeGuard";
-import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -39,28 +37,6 @@ const Navbar = () => {
     
     checkAuth();
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        const updateAuthState = async () => {
-          const authenticated = await isAuthenticated();
-          setIsLoggedIn(authenticated);
-          
-          if (authenticated) {
-            const user = getUser();
-            if (user) {
-              setUserType(user.userType);
-            }
-          } else {
-            setUserType(null);
-          }
-        };
-        
-        // Use setTimeout to prevent deadlock
-        setTimeout(updateAuthState, 0);
-      }
-    );
-    
     const handleScroll = () => {
       if (window.scrollY > 10) {
         setIsScrolled(true);
@@ -73,7 +49,6 @@ const Navbar = () => {
     
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      subscription.unsubscribe();
     };
   }, []);
 

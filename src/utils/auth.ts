@@ -52,23 +52,16 @@ export const removeUser = () => {
 /**
  * Check if user is authenticated
  */
-export const isAuthenticated = async (): Promise<boolean> => {
-  const { data } = await supabase.auth.getSession();
-  return !!data.session;
+export const isAuthenticated = (): boolean => {
+  return !!getUser();
 };
 
 /**
  * Logout the current user
  * @returns Object indicating success and optional message
  */
-export const logoutUser = async (): Promise<{success: boolean; message?: string}> => {
+export const logoutUser = (): {success: boolean; message?: string} => {
   try {
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      throw error;
-    }
-    
     removeUser();
     return {
       success: true,
@@ -94,92 +87,62 @@ export const loginUser = async (
   try {
     console.log(`Attempting to login user: ${email} as ${userType}`);
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    // Query the users table to find the user with matching email and password
+    const { data, error } = await supabase
+      .from('users')
+      .select('*, donors(*), intermediary_ngo(*), recipients(*)')
+      .eq('email', email)
+      .eq('password', parseInt(password, 10))
+      .eq('entity_type', userType)
+      .single();
     
     if (error) {
-      // Handle "Email not confirmed" error
-      if (error.message === "Email not confirmed" || error.code === "email_not_confirmed") {
-        console.log("Email not confirmed, attempting to confirm manually...");
-        
-        // Try to get user by email and confirm
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: null
-          }
-        });
-        
-        if (signUpError) {
-          console.error("Error during sign up:", signUpError);
-          throw error; // Throw original error if sign up fails
-        }
-        
-        // Try signing in again after sign up attempt
-        const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (retryError) {
-          throw retryError;
-        }
-        
-        data.user = retryData.user;
-        data.session = retryData.session;
-      } else {
-        throw error;
-      }
-    }
-    
-    if (!data.user || !data.session) {
+      console.error("Login error:", error);
       return {
         success: false,
-        message: "Login failed. Please try again."
+        message: "Invalid email or password."
       };
     }
     
-    // Fetch user profile from profiles table
-    const { data: profileData, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
-      
-    if (profileError) {
-      console.error("Error fetching user profile:", profileError);
+    if (!data) {
       return {
         success: false,
-        message: "Error fetching user profile."
+        message: "User not found or incorrect credentials."
       };
     }
     
-    // Check if user type matches
-    if (profileData.user_type !== userType) {
-      // Sign out if wrong user type
-      await supabase.auth.signOut();
-      return {
-        success: false,
-        message: `This account is not registered as a ${userType}. Please use the correct login type.`
-      };
+    // Map DB entity type to application user type
+    let userProfile: any = null;
+    let address = '';
+    let organization = '';
+    
+    if (userType === 'donor' && data.donors) {
+      userProfile = data.donors;
+      address = userProfile.address || '';
+      organization = userProfile.org_name || '';
+    } else if (userType === 'ngo' && data.intermediary_ngo) {
+      userProfile = data.intermediary_ngo;
+      address = userProfile.address || '';
+      organization = userProfile.name || '';
+    } else if (userType === 'recipient' && data.recipients) {
+      userProfile = data.recipients;
+      address = userProfile.address || '';
+      organization = userProfile.org_name || '';
     }
     
     // Create user data object
     const userData: UserData = {
-      id: data.user.id,
-      email: data.user.email || '',
-      name: profileData.name || email.split('@')[0],
-      userType: profileData.user_type as UserType,
-      verified: profileData.verified || false,
-      createdAt: profileData.created_at,
-      organization: profileData.organization,
-      address: profileData.address,
-      phoneNumber: profileData.phone_number,
-      verificationId: profileData.verification_id,
-      department: profileData.department
+      id: data.entity_id,
+      email: data.email,
+      name: userProfile?.name || email.split('@')[0],
+      userType: data.entity_type as UserType,
+      verified: true, // Since we're not using email verification
+      createdAt: data.created_at,
+      organization: organization,
+      address: address,
+      phoneNumber: userProfile?.phone || '',
+      verificationId: data.verification_id,
+      department: userType === 'admin' ? data.department : undefined
     };
     
     // Save user data
@@ -217,40 +180,79 @@ export const registerUser = async (
       };
     }
     
-    // Prepare user metadata
-    const metadata = {
-      name: userData.name,
-      user_type: userData.userType,
-      organization: userData.organization,
-      address: userData.address,
-      phone_number: userData.phoneNumber,
-      verification_id: verificationId,
-      department: userData.department
-    };
+    // Check if user already exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', userData.email)
+      .single();
     
-    // Register user with Supabase with emailRedirectTo set to null to bypass email confirmation
-    const { data, error } = await supabase.auth.signUp({
-      email: userData.email,
-      password,
-      options: {
-        data: metadata,
-        emailRedirectTo: null
-      }
-    });
-    
-    if (error) {
-      throw error;
-    }
-    
-    if (!data.user) {
+    if (existingUser) {
       return {
         success: false,
-        message: "Registration failed. Please try again."
+        message: "User with this email already exists."
       };
     }
     
-    // Sign out immediately after registration to prevent auto-login
-    await supabase.auth.signOut();
+    // Generate entity ID for the new user
+    const entityId = crypto.randomUUID();
+    
+    // Insert new user into the users table
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert({
+        email: userData.email,
+        password: parseInt(password, 10),
+        entity_id: entityId,
+        entity_type: userData.userType,
+        verification_id: verificationId
+      });
+    
+    if (insertError) {
+      throw insertError;
+    }
+    
+    // Insert user profile into the corresponding table based on user type
+    if (userData.userType === 'donor') {
+      const { error } = await supabase
+        .from('donors')
+        .insert({
+          entity_id: entityId,
+          name: userData.name || '',
+          org_name: userData.organization || '',
+          address: userData.address || '',
+          phone: userData.phoneNumber || '',
+          longitude: '0', // Default value, update with actual location later
+          latitude: '0'  // Default value, update with actual location later
+        });
+      
+      if (error) throw error;
+    } 
+    else if (userData.userType === 'ngo') {
+      const { error } = await supabase
+        .from('intermediary_ngo')
+        .insert({
+          entity_id: entityId,
+          name: userData.organization || '',
+          address: userData.address || '',
+          phone: userData.phoneNumber || ''
+        });
+      
+      if (error) throw error;
+    } 
+    else if (userData.userType === 'recipient') {
+      const { error } = await supabase
+        .from('recipients')
+        .insert({
+          entity_id: entityId,
+          name: userData.name || '',
+          org_name: userData.organization || '',
+          address: userData.address || '',
+          phone: userData.phoneNumber || ''
+        });
+      
+      if (error) throw error;
+    }
     
     return {
       success: true,
@@ -265,32 +267,5 @@ export const registerUser = async (
   }
 };
 
-/**
- * Resend confirmation email
- */
-export const resendConfirmationEmail = async (email: string): Promise<{success: boolean; message: string}> => {
-  try {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-      options: {
-        emailRedirectTo: window.location.origin + '/sign-in'
-      }
-    });
-    
-    if (error) {
-      throw error;
-    }
-    
-    return {
-      success: true,
-      message: "Confirmation email has been resent. Please check your inbox."
-    };
-  } catch (error: any) {
-    console.error("Error resending confirmation email:", error);
-    return {
-      success: false,
-      message: error.message || "Failed to resend confirmation email."
-    };
-  }
-};
+// Since we're not using Supabase Auth, this function is no longer needed
+// export const resendConfirmationEmail = async...

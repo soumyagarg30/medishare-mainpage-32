@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -25,38 +24,33 @@ const DonorDashboard = () => {
   const [locationRequested, setLocationRequested] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const isAuth = await isAuthenticated();
-      
-      if (!isAuth) {
-        navigate("/sign-in");
-        return;
-      }
-      
-      const userData = getUser();
-      if (!userData || userData.userType !== "donor") {
-        navigate("/sign-in");
-        return;
-      }
-      
-      setUser(userData);
-
-      // Check if we should prompt for location permission
-      const locationPermissionAsked = localStorage.getItem("locationPermissionAsked");
-      if (!locationPermissionAsked && !locationRequested) {
-        setLocationRequested(true);
-        // Let the component render first before showing the toast
-        setTimeout(() => {
-          toast({
-            title: "Enable Location",
-            description: "Please enable location to see nearby NGOs",
-            variant: "default",
-          });
-        }, 1000);
-      }
-    };
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+      navigate("/sign-in");
+      return;
+    }
     
-    checkAuth();
+    const userData = getUser();
+    if (!userData || userData.userType !== "donor") {
+      navigate("/sign-in");
+      return;
+    }
+    
+    setUser(userData);
+
+    // Check if we should prompt for location permission
+    const locationPermissionAsked = localStorage.getItem("locationPermissionAsked");
+    if (!locationPermissionAsked && !locationRequested) {
+      setLocationRequested(true);
+      // Let the component render first before showing the toast
+      setTimeout(() => {
+        toast({
+          title: "Enable Location",
+          description: "Please enable location to see nearby NGOs",
+          variant: "default",
+        });
+      }, 1000);
+    }
   }, [navigate, locationRequested]);
 
   const handleTabChange = (tab: string) => {

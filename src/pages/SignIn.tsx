@@ -13,9 +13,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Building, HeartHandshake, Shield, LockIcon, MailIcon, Mail, Loader2 } from "lucide-react";
-import { UserType, isAuthenticated, loginUser, resendConfirmationEmail } from "@/utils/auth";
+import { UserType, isAuthenticated, loginUser } from "@/utils/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
 
 const loginFormSchema = z.object({
   email: z.string().email({
@@ -33,34 +32,29 @@ const SignIn = () => {
   const [formError, setFormError] = useState<string | null>(null);
   
   useEffect(() => {
-    const checkAuth = async () => {
-      const isAuth = await isAuthenticated();
+    // Check if user is already authenticated
+    if (isAuthenticated()) {
+      const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
       
-      if (isAuth) {
-        const user = JSON.parse(localStorage.getItem('medishare_user') || '{}');
-        
-        if (user.userType) {
-          switch(user.userType) {
-            case "donor":
-              navigate("/donor-dashboard");
-              break;
-            case "ngo":
-              navigate("/ngo-dashboard");
-              break;
-            case "recipient":
-              navigate("/recipient-dashboard");
-              break;
-            case "admin":
-              navigate("/admin-dashboard");
-              break;
-            default:
-              navigate("/");
-          }
+      if (user.userType) {
+        switch(user.userType) {
+          case "donor":
+            navigate("/donor-dashboard");
+            break;
+          case "ngo":
+            navigate("/ngo-dashboard");
+            break;
+          case "recipient":
+            navigate("/recipient-dashboard");
+            break;
+          case "admin":
+            navigate("/admin-dashboard");
+            break;
+          default:
+            navigate("/");
         }
       }
-    };
-    
-    checkAuth();
+    }
   }, [navigate]);
   
   const form = useForm({

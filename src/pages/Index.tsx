@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -17,15 +16,9 @@ const Index = () => {
     window.scrollTo(0, 0);
     
     // Check if user is authenticated
-    const checkAuth = async () => {
-      const isAuth = await isAuthenticated();
-      
-      if (isAuth) {
-        setUser(getUser());
-      }
-    };
-    
-    checkAuth();
+    if (isAuthenticated()) {
+      setUser(getUser());
+    }
   }, []);
 
   return (

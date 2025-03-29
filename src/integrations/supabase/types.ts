@@ -226,6 +226,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id: number
+          password: number | null
           verification_id: string
         }
         Insert: {
@@ -234,6 +235,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id?: number
+          password?: number | null
           verification_id: string
         }
         Update: {
@@ -242,6 +244,7 @@ export type Database = {
           entity_id?: string
           entity_type?: string
           id?: number
+          password?: number | null
           verification_id?: string
         }
         Relationships: []
