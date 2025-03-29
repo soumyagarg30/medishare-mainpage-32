@@ -32,7 +32,7 @@ import { Loader2, ChevronDown, ChevronUp, Package, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 interface DonatedMedicine {
-  id: string;
+  id: string | number; // Updated to accept both string and number
   medicine_name: string;
   quantity: number;
   expiry_date: string;
@@ -41,6 +41,7 @@ interface DonatedMedicine {
   status: string;
   image_url: string;
   ngo_entity_id: string | null;
+  // Optional properties that will be added after fetching NGO data
   ngo_name?: string;
   ngo_address?: string;
   ngo_phone?: string;
@@ -80,7 +81,7 @@ const DonateTab = () => {
         throw error;
       }
       
-      let medicines = data || [];
+      let medicines: DonatedMedicine[] = data || [];
       
       // For each medicine, fetch NGO details if available
       for (let i = 0; i < medicines.length; i++) {
@@ -381,13 +382,13 @@ const DonateTab = () => {
           {donatedMedicines.length > 0 ? (
             <div className="space-y-4">
               {donatedMedicines.map((medicine) => (
-                <div key={medicine.id} className="border rounded-lg overflow-hidden">
+                <div key={String(medicine.id)} className="border rounded-lg overflow-hidden">
                   <div 
                     className={`p-4 cursor-pointer ${
                       medicine.status === 'uploaded' ? 'bg-amber-50' : 
                       medicine.status === 'collected' ? 'bg-green-50' : 'bg-white'
                     }`}
-                    onClick={() => setExpandedMedicine(expandedMedicine === medicine.id ? null : medicine.id)}
+                    onClick={() => setExpandedMedicine(expandedMedicine === String(medicine.id) ? null : String(medicine.id))}
                   >
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                       <div className="md:flex-1">
@@ -419,7 +420,7 @@ const DonateTab = () => {
                         </div>
                       )}
                       <div className="flex items-center">
-                        {expandedMedicine === medicine.id ? (
+                        {expandedMedicine === String(medicine.id) ? (
                           <ChevronUp className="h-5 w-5 text-gray-500" />
                         ) : (
                           <ChevronDown className="h-5 w-5 text-gray-500" />
@@ -428,7 +429,7 @@ const DonateTab = () => {
                     </div>
                   </div>
                   
-                  {expandedMedicine === medicine.id && (
+                  {expandedMedicine === String(medicine.id) && (
                     <div className="p-4 border-t bg-gray-50">
                       <h4 className="font-medium text-sm text-gray-700 mb-2">NGO Details</h4>
                       {medicine.ngo_entity_id && medicine.ngo_name ? (

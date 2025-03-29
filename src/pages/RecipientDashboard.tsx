@@ -21,7 +21,9 @@ interface MedicineRequest {
   quantity: number;
   need_by_date: string;
   status: string;
+  recipient_entity_id: string;
   ngo_entity_id: string | null;
+  // Optional properties that will be added after fetching NGO data
   ngo_name?: string;
   ngo_address?: string;
   ngo_phone?: string;
@@ -87,7 +89,7 @@ const RecipientDashboard = () => {
         throw error;
       }
       
-      let requests = data || [];
+      let requests: MedicineRequest[] = data || [];
       
       // For each request, fetch NGO details if available
       for (let i = 0; i < requests.length; i++) {

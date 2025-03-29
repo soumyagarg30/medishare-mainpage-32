@@ -92,7 +92,7 @@ export type Database = {
           address: string
           entity_id: string
           latitude: string | null
-          longitude: string
+          longitude: string | null
           name: string
           org_name: string
           phone: string | null
@@ -101,7 +101,7 @@ export type Database = {
           address: string
           entity_id: string
           latitude?: string | null
-          longitude: string
+          longitude?: string | null
           name: string
           org_name: string
           phone?: string | null
@@ -110,7 +110,7 @@ export type Database = {
           address?: string
           entity_id?: string
           latitude?: string | null
-          longitude?: string
+          longitude?: string | null
           name?: string
           org_name?: string
           phone?: string | null
