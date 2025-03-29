@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Check, Clock, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Plus, Check, Clock, AlertTriangle, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -216,6 +216,30 @@ const MedicineRequestsTab = ({ recipientEntityId }: { recipientEntityId: string 
     }
   }, [recipientEntityId]);
 
+  // Render status cell with appropriate controls based on status
+  const renderStatusCell = (request: MedicineRequest) => {
+    // If status is rejected, just show status without controls
+    if (request.status === 'rejected') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          Rejected
+        </span>
+      );
+    }
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium 
+        ${request.status === 'approved' 
+          ? 'bg-green-100 text-green-800' 
+          : request.status === 'uploaded' 
+          ? 'bg-amber-100 text-amber-800'
+          : 'bg-blue-100 text-blue-800'}`}
+      >
+        {request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Unknown'}
+      </span>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -353,21 +377,18 @@ const MedicineRequestsTab = ({ recipientEntityId }: { recipientEntityId: string 
                     <TableCell>{request.quantity}</TableCell>
                     <TableCell>{request.need_by_date ? new Date(request.need_by_date).toLocaleDateString() : 'Not specified'}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                        ${request.status === 'approved' 
-                          ? 'bg-green-100 text-green-800' 
-                          : request.status === 'uploaded' 
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-blue-100 text-blue-800'}`}
-                      >
-                        {request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Unknown'}
-                      </span>
+                      {renderStatusCell(request)}
                     </TableCell>
                     <TableCell>
                       {request.ngo_entity_id ? (
                         <span className="flex items-center text-green-600 gap-1">
                           <Check size={16} />
                           {request.ngo_name || 'NGO Assigned'}
+                        </span>
+                      ) : request.status === 'rejected' ? (
+                        <span className="flex items-center text-red-600 gap-1">
+                          <X size={16} />
+                          Request Rejected
                         </span>
                       ) : (
                         <span className="flex items-center text-amber-600 gap-1">

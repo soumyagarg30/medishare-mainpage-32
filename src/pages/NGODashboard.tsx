@@ -32,64 +32,18 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-// Sample available medicines data
-const availableMedicines = [
-  {
-    id: "MED001",
-    name: "Paracetamol",
-    quantity: "500 tablets",
-    donor: "John Doe Pharmaceuticals",
-    expiryDate: "2024-12-31",
-    status: "Available"
-  },
-  {
-    id: "MED002",
-    name: "Insulin",
-    quantity: "25 vials",
-    donor: "MediCare Hospital",
-    expiryDate: "2024-06-15",
-    status: "Available"
-  },
-  {
-    id: "MED003",
-    name: "Vitamin C",
-    quantity: "200 tablets",
-    donor: "HealthPlus Clinic",
-    expiryDate: "2024-10-20",
-    status: "Reserved"
-  }
-];
-
-// Sample inventory items
-const inventoryItems = [
-  {
-    id: "INV001",
-    name: "Paracetamol",
-    quantity: "350 tablets",
-    receivedFrom: "John Doe Pharmaceuticals",
-    receivedDate: "2023-11-10",
-    expiryDate: "2024-12-31",
-    status: "In Stock"
-  },
-  {
-    id: "INV002",
-    name: "Antibiotics",
-    quantity: "100 capsules",
-    receivedFrom: "MediCare Hospital",
-    receivedDate: "2023-11-15",
-    expiryDate: "2024-08-20",
-    status: "In Stock"
-  },
-  {
-    id: "INV003",
-    name: "Insulin",
-    quantity: "15 vials",
-    receivedFrom: "MediCare Hospital",
-    receivedDate: "2023-11-20",
-    expiryDate: "2024-06-15",
-    status: "Low Stock"
-  }
-];
+interface DonatedMedicine {
+  id: string;
+  medicine_name: string | null;
+  quantity: number | null;
+  donor_entity_id: string;
+  ngo_entity_id: string | null;
+  expiry_date: string | null;
+  status: string | null;
+  date_added: string | null;
+  ingredients: string | null;
+  donor_name?: string;
+}
 
 // Sample distribution history
 const distributionHistory = [
@@ -134,6 +88,8 @@ const NGODashboard = () => {
   const [editableUserData, setEditableUserData] = useState<Partial<UserData>>({});
   const [loading, setLoading] = useState(true);
   const [ngoEntityId, setNgoEntityId] = useState<string | null>(null);
+  const [availableMedicines, setAvailableMedicines] = useState<DonatedMedicine[]>([]);
+  const [loadingMedicines, setLoadingMedicines] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -175,6 +131,9 @@ const NGODashboard = () => {
         });
       } else if (userEntityData) {
         setNgoEntityId(userEntityData.entity_id);
+        
+        // Update NGO information in intermediary_ngo table
+        await updateNGOInfo(userEntityData.entity_id, userData);
       }
       
       setLoading(false);
@@ -183,13 +142,143 @@ const NGODashboard = () => {
     checkAuth();
   }, [navigate]);
 
+  const updateNGOInfo = async (entityId: string, userData: UserData) => {
+    try {
+      const { data: existingNgoData, error: fetchError } = await supabase
+        .from('intermediary_ngo')
+        .select('*')
+        .eq('entity_id', entityId)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') { // Not found error
+        console.error('Error checking existing NGO data:', fetchError);
+        return;
+      }
+      
+      const ngoData = {
+        entity_id: entityId,
+        name: userData.organization || userData.name,
+        address: userData.address,
+        phone: userData.phoneNumber
+      };
+      
+      if (existingNgoData) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('intermediary_ngo')
+          .update(ngoData)
+          .eq('entity_id', entityId);
+          
+        if (updateError) {
+          console.error('Error updating NGO information:', updateError);
+        }
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('intermediary_ngo')
+          .insert(ngoData);
+          
+        if (insertError) {
+          console.error('Error inserting NGO information:', insertError);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating NGO information:', error);
+    }
+  };
+
+  const fetchAvailableMedicines = async () => {
+    setLoadingMedicines(true);
+    try {
+      const { data, error } = await supabase
+        .from('donated_meds')
+        .select('*')
+        .eq('status', 'uploaded')
+        .is('ngo_entity_id', null);
+      
+      if (error) throw error;
+      
+      let medicines: DonatedMedicine[] = data || [];
+      
+      // Fetch donor information for each medicine
+      for (let i = 0; i < medicines.length; i++) {
+        const { data: donorData, error: donorError } = await supabase
+          .from('donors')
+          .select('name, org_name')
+          .eq('entity_id', medicines[i].donor_entity_id)
+          .single();
+        
+        if (!donorError && donorData) {
+          medicines[i].donor_name = donorData.org_name || donorData.name;
+        }
+      }
+      
+      setAvailableMedicines(medicines);
+    } catch (error) {
+      console.error('Error fetching available medicines:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load available medicines",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingMedicines(false);
+    }
+  };
+
+  const handleRequestMedicine = async (medicineId: string) => {
+    if (!ngoEntityId) {
+      toast({
+        title: "Error",
+        description: "NGO information not found",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('donated_meds')
+        .update({
+          ngo_entity_id: ngoEntityId,
+          status: 'approved'
+        })
+        .eq('id', medicineId)
+        .select();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Medicine request submitted successfully",
+        variant: "default"
+      });
+      
+      // Remove the medicine from the available list
+      setAvailableMedicines(prev => prev.filter(med => med.id !== medicineId));
+    } catch (error) {
+      console.error('Error requesting medicine:', error);
+      toast({
+        title: "Error",
+        description: "Failed to request medicine",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'available') {
+      fetchAvailableMedicines();
+    }
+  }, [activeTab]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditableUserData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveProfile = () => {
-    if (user) {
+  const handleSaveProfile = async () => {
+    if (user && ngoEntityId) {
       const updatedUser = { 
         ...user, 
         ...editableUserData 
@@ -197,7 +286,17 @@ const NGODashboard = () => {
       
       localStorage.setItem('medishare_user', JSON.stringify(updatedUser));
       setUser(updatedUser);
+      
+      // Update NGO information in database
+      await updateNGOInfo(ngoEntityId, updatedUser);
+      
       setIsEditing(false);
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+        variant: "default"
+      });
     }
   };
 
@@ -242,13 +341,6 @@ const NGODashboard = () => {
                     >
                       <Search size={18} />
                       <span>Available Medicines</span>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("inventory")} 
-                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "inventory" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
-                    >
-                      <Package2 size={18} />
-                      <span>Inventory Management</span>
                     </button>
                     <button 
                       onClick={() => setActiveTab("distribution")} 
@@ -422,105 +514,49 @@ const NGODashboard = () => {
                       </div>
                       
                       <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Donor</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Expiry Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {availableMedicines.map((medicine) => (
-                              <tr key={medicine.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-4 text-sm">{medicine.id}</td>
-                                <td className="px-4 py-4 text-sm font-medium">{medicine.name}</td>
-                                <td className="px-4 py-4 text-sm">{medicine.quantity}</td>
-                                <td className="px-4 py-4 text-sm">{medicine.donor}</td>
-                                <td className="px-4 py-4 text-sm">{medicine.expiryDate}</td>
-                                <td className="px-4 py-4 text-sm">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    medicine.status === "Available" 
-                                      ? "bg-green-100 text-green-800" 
-                                      : "bg-amber-100 text-amber-800"
-                                  }`}>
-                                    {medicine.status}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-sm">
-                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
-                                    Request
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {activeTab === "inventory" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Inventory Management</CardTitle>
-                    <CardDescription>Track and manage medicines in your inventory</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Received From</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Received Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Expiry Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {inventoryItems.map((item) => (
-                              <tr key={item.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-4 text-sm">{item.id}</td>
-                                <td className="px-4 py-4 text-sm font-medium">{item.name}</td>
-                                <td className="px-4 py-4 text-sm">{item.quantity}</td>
-                                <td className="px-4 py-4 text-sm">{item.receivedFrom}</td>
-                                <td className="px-4 py-4 text-sm">{item.receivedDate}</td>
-                                <td className="px-4 py-4 text-sm">{item.expiryDate}</td>
-                                <td className="px-4 py-4 text-sm">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    item.status === "In Stock" 
-                                      ? "bg-green-100 text-green-800" 
-                                      : "bg-yellow-100 text-yellow-800"
-                                  }`}>
-                                    {item.status}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-sm">
-                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
-                                    Update
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      <div className="flex justify-end">
-                        <Button className="bg-medishare-blue hover:bg-medishare-blue/90">
-                          + Add New Item
-                        </Button>
+                        {loadingMedicines ? (
+                          <div className="text-center py-6">Loading available medicines...</div>
+                        ) : availableMedicines.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Medicine</TableHead>
+                                <TableHead>Quantity</TableHead>
+                                <TableHead>Donor</TableHead>
+                                <TableHead>Expiry Date</TableHead>
+                                <TableHead>Ingredients</TableHead>
+                                <TableHead>Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {availableMedicines.map((medicine) => (
+                                <TableRow key={medicine.id}>
+                                  <TableCell className="font-medium">{medicine.medicine_name}</TableCell>
+                                  <TableCell>{medicine.quantity}</TableCell>
+                                  <TableCell>{medicine.donor_name || 'Unknown Donor'}</TableCell>
+                                  <TableCell>{medicine.expiry_date || 'Not specified'}</TableCell>
+                                  <TableCell>{medicine.ingredients || 'Not specified'}</TableCell>
+                                  <TableCell>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-medishare-blue"
+                                      onClick={() => handleRequestMedicine(medicine.id)}
+                                    >
+                                      Request
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-8 flex flex-col items-center text-gray-500">
+                            <AlertTriangle className="h-12 w-12 text-amber-400 mb-2" />
+                            <p className="text-lg font-medium">No Available Medicines</p>
+                            <p className="mt-1">There are currently no available medicines to request.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
