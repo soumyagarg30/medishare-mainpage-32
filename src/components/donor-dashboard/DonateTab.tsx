@@ -35,6 +35,7 @@ const DonateTab = () => {
         
         if (!error && data) {
           setDonorEntityId(data.entity_id);
+          console.log("Donor entity ID fetched:", data.entity_id);
         } else {
           console.error('Error fetching donor ID:', error);
           toast({
@@ -113,11 +114,31 @@ const DonateTab = () => {
     setLoading(true);
     
     try {
+      console.log("Attempting to submit donation with donor ID:", donorEntityId);
+      
       // Generate a unique file name using donor_entity_id and date
       const currentDate = new Date().toISOString().split('T')[0];
       const fileExt = newDonation.image_file.name.split('.').pop();
       const fileName = `${donorEntityId}/${currentDate}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `${fileName}`;
+      
+      // Ensure the bucket exists before uploading
+      try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const bucketExists = buckets?.some(bucket => bucket.name === 'ocr-images');
+        
+        if (!bucketExists) {
+          console.log("Bucket doesn't exist, attempting to create it");
+          // This should already be created via SQL but just in case
+          await supabase.storage.createBucket('ocr-images', {
+            public: true
+          });
+        }
+      } catch (err) {
+        console.error("Error checking/creating bucket:", err);
+      }
+      
+      console.log("Uploading image to path:", filePath);
       
       // Upload image to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -128,8 +149,11 @@ const DonateTab = () => {
         });
       
       if (uploadError) {
+        console.error("Upload error:", uploadError);
         throw uploadError;
       }
+      
+      console.log("Image uploaded successfully, data:", uploadData);
       
       // Get the public URL for the uploaded image
       const { data: publicUrlData } = supabase.storage
@@ -137,6 +161,7 @@ const DonateTab = () => {
         .getPublicUrl(filePath);
       
       const imageUrl = publicUrlData.publicUrl;
+      console.log("Generated public URL:", imageUrl);
       
       // Insert donation record with image URL
       const { data: donationData, error: donationError } = await supabase
@@ -151,12 +176,14 @@ const DonateTab = () => {
           date_added: currentDate,
           image_url: imageUrl
         })
-        .select('*')
-        .single();
+        .select();
       
       if (donationError) {
+        console.error("Database insert error:", donationError);
         throw donationError;
       }
+      
+      console.log("Donation record inserted successfully:", donationData);
       
       toast({
         title: "Success",
@@ -177,7 +204,7 @@ const DonateTab = () => {
       console.error('Error submitting donation:', error);
       toast({
         title: "Error",
-        description: "Failed to submit medicine donation",
+        description: "Failed to submit medicine donation. Please try again.",
         variant: "destructive"
       });
     } finally {

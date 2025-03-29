@@ -11,10 +11,10 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Enable real-time subscriptions for the requested_meds table
-const configureRealtimeForMedicineRequests = async () => {
+// Enable real-time subscriptions for the requested_meds and donated_meds tables
+const configureRealtime = async () => {
   await supabase
-    .channel('requested-meds-changes')
+    .channel('table-db-changes')
     .on('postgres_changes', 
       { 
         event: 'INSERT', 
@@ -33,8 +33,26 @@ const configureRealtimeForMedicineRequests = async () => {
       (payload) => {
         console.log('Medicine request updated:', payload);
       })
+    .on('postgres_changes', 
+      { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'donated_meds' 
+      }, 
+      (payload) => {
+        console.log('New medicine donation:', payload);
+      })
+    .on('postgres_changes', 
+      { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'donated_meds' 
+      }, 
+      (payload) => {
+        console.log('Medicine donation updated:', payload);
+      })
     .subscribe();
 };
 
-// Call this function when initializing your app if needed
-// configureRealtimeForMedicineRequests();
+// Call the function to configure realtime
+configureRealtime();

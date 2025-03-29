@@ -32,6 +32,7 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
 
   const fetchMedicineRequests = async () => {
     try {
+      console.log("Fetching medicine requests");
       // Fetch all medicine requests with status "uploaded"
       const { data, error } = await supabase
         .from('requested_meds')
@@ -43,6 +44,7 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
         throw error;
       }
       
+      console.log("Fetched medicine requests:", data);
       let requests: MedicineRequest[] = data || [];
       
       // For each request, fetch recipient details
@@ -84,18 +86,24 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
     }
     
     try {
+      console.log(`Approving request ${requestId} with NGO entity ID ${ngoEntityId}`);
+      
       // Update the request with ngo_entity_id and status
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('requested_meds')
         .update({ 
           ngo_entity_id: ngoEntityId,
           status: 'approved'
         })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .select();
       
       if (error) {
+        console.error("Error details:", error);
         throw error;
       }
+      
+      console.log("Update successful:", data);
       
       toast({
         title: "Success",
@@ -149,6 +157,8 @@ const MedicineRequestsTab = ({ ngoEntityId }: { ngoEntityId: string | null }) =>
         }
       )
       .subscribe();
+
+    console.log("Subscribed to real-time updates");
 
     // Clean up subscription when component unmounts
     return () => {
