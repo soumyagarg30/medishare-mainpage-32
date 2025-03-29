@@ -88,13 +88,15 @@ export const loginUser = async (
     console.log(`Attempting to login user: ${email} as ${userType}`);
     
     // Map user type to entity_type in the database
-    let entityType = userType;
+    let entityType = '';
     if (userType === 'donor') {
       entityType = 'Donor';
     } else if (userType === 'ngo') {
       entityType = 'Intermediary NGO';
     } else if (userType === 'recipient') {
       entityType = 'Recipient';
+    } else if (userType === 'admin') {
+      entityType = 'Admin';
     }
     
     // Query the users table to find the user with matching email and entity_type
@@ -302,6 +304,3 @@ export const registerUser = async (
     };
   }
 };
-
-// Since we're not using Supabase Auth, this function is no longer needed
-// export const resendConfirmationEmail = async...

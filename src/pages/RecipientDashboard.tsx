@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,134 +7,298 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "@/hooks/use-toast";
-import { 
-  UserCircle,
-  Search,
-  Clock,
-  Bell,
-  FileText,
-  Upload,
-  MapPin,
-  CheckCircle2,
-  Package, 
-  X
-} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { getUser, UserData, isAuthenticated } from "@/utils/auth";
+import { useNavigate } from "react-router-dom";
+import { Loader2, ChevronDown, ChevronUp, UserCircle, Search, Clock, Bell, FileText, Package, MapPin } from "lucide-react";
+import WelcomeMessage from "@/components/WelcomeMessage";
 
-// Sample medicine list data
-const availableMedicines = [
-  {
-    id: "MED001",
-    name: "Paracetamol",
-    quantity: "500 tablets",
-    ngo: "Health For All NGO",
-    location: "Bandra, Mumbai",
-    distance: 2.3
-  },
-  {
-    id: "MED002",
-    name: "Insulin",
-    quantity: "25 vials",
-    ngo: "Medical Aid Foundation",
-    location: "Andheri, Mumbai",
-    distance: 4.5
-  },
-  {
-    id: "MED003",
-    name: "Vitamin C",
-    quantity: "200 tablets",
-    ngo: "Care NGO",
-    location: "Dadar, Mumbai",
-    distance: 3.8
-  }
-];
+interface MedicineRequest {
+  id: string;
+  medicine_name: string;
+  quantity: number;
+  need_by_date: string;
+  status: string;
+  ngo_entity_id: string | null;
+  ngo_name?: string;
+  ngo_address?: string;
+  ngo_phone?: string;
+}
 
-// Sample request history
-const requestHistory = [
-  {
-    id: "REQ001",
-    medicine: "Paracetamol",
-    quantity: "50 tablets",
-    requestDate: "2023-12-01",
-    ngo: "Health For All NGO",
-    status: "Approved",
-    deliveryDate: "2023-12-05"
-  },
-  {
-    id: "REQ002",
-    medicine: "Insulin",
-    quantity: "5 vials",
-    requestDate: "2023-12-10",
-    ngo: "Medical Aid Foundation",
-    status: "Pending",
-    deliveryDate: null
-  },
-  {
-    id: "REQ003",
-    medicine: "Antibiotics",
-    quantity: "30 tablets",
-    requestDate: "2023-11-15",
-    ngo: "Care NGO",
-    status: "Delivered",
-    deliveryDate: "2023-11-20"
-  }
-];
+interface RecipientProfile {
+  entity_id: string;
+  name: string;
+  org_name: string | null;
+  address: string | null;
+  phone: string | null;
+  latitude: string | null;
+  longitude: string | null;
+}
 
 const RecipientDashboard = () => {
-  const [activeTab, setActiveTab] = useState("profile");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [medicineType, setMedicineType] = useState("all");
-  const [fileUploaded, setFileUploaded] = useState(false);
-  const [sortBy, setSortBy] = useState("distance"); // Default sort by distance
-  
-  // Filter and sort medicines
-  const filteredAndSortedMedicines = availableMedicines
-    .filter(medicine => 
-      medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (medicineType === "all" || medicine.name.toLowerCase().includes(medicineType.toLowerCase()))
-    )
-    .sort((a, b) => {
-      if (sortBy === "distance") {
-        return a.distance - b.distance;
-      } else if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
+  const [activeTab, setActiveTab] = useState("requests");
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [medicineRequests, setMedicineRequests] = useState<MedicineRequest[]>([]);
+  const [expandedRequest, setExpandedRequest] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<RecipientProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfileData, setEditedProfileData] = useState<Partial<RecipientProfile>>({});
+  const [newRequest, setNewRequest] = useState({
+    medicine_name: "",
+    quantity: 0,
+    need_by_date: ""
+  });
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!isAuthenticated()) {
+        navigate("/sign-in");
+        return;
       }
-      return 0;
-    });
-  
-  const handleRequest = (medicine) => {
-    if (!fileUploaded) {
+      
+      const userData = getUser();
+      if (!userData || userData.userType !== "recipient") {
+        navigate("/sign-in");
+        return;
+      }
+      
+      setUser(userData);
+      await fetchMedicineRequests(userData.id);
+      await fetchRecipientProfile(userData.id);
+      setLoading(false);
+    };
+    
+    checkAuth();
+  }, [navigate]);
+
+  const fetchMedicineRequests = async (recipientId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('requested_meds')
+        .select('*')
+        .eq('recipient_entity_id', recipientId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      let requests = data || [];
+      
+      // For each request, fetch NGO details if available
+      for (let i = 0; i < requests.length; i++) {
+        if (requests[i].ngo_entity_id) {
+          const { data: ngoData, error: ngoError } = await supabase
+            .from('intermediary_ngo')
+            .select('*')
+            .eq('entity_id', requests[i].ngo_entity_id)
+            .single();
+          
+          if (!ngoError && ngoData) {
+            requests[i].ngo_name = ngoData.name;
+            requests[i].ngo_address = ngoData.address;
+            requests[i].ngo_phone = ngoData.phone;
+          }
+        }
+      }
+      
+      setMedicineRequests(requests);
+    } catch (error) {
+      console.error('Error fetching medicine requests:', error);
       toast({
-        title: "Prescription Required",
-        description: "Please upload a prescription before requesting medicine.",
+        title: "Error",
+        description: "Failed to load your medicine requests",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchRecipientProfile = async (entityId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('recipients')
+        .select('*')
+        .eq('entity_id', entityId)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      setProfileData(data);
+      setEditedProfileData(data || {});
+    } catch (error) {
+      console.error('Error fetching recipient profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your profile",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRequestStatusChange = async (requestId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('requested_meds')
+        .update({ status: newStatus })
+        .eq('id', requestId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setMedicineRequests((prev) => 
+        prev.map((req) => 
+          req.id === requestId ? { ...req, status: newStatus } : req
+        )
+      );
+      
+      toast({
+        title: "Status Updated",
+        description: `Medicine request status updated to ${newStatus}`
+      });
+    } catch (error) {
+      console.error('Error updating request status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update request status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleNewRequestChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewRequest(prev => ({
+      ...prev,
+      [name]: name === 'quantity' ? parseInt(value, 10) || 0 : value
+    }));
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    setNewRequest(prev => ({
+      ...prev,
+      need_by_date: date ? date.toISOString().split('T')[0] : ''
+    }));
+  };
+
+  const handleSubmitNewRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newRequest.medicine_name || !newRequest.quantity || !newRequest.need_by_date) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields",
         variant: "destructive"
       });
       return;
     }
     
-    toast({
-      title: "Request Sent",
-      description: `Your request for ${medicine.name} has been sent to ${medicine.ngo}.`,
-    });
-  };
-  
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFileUploaded(true);
+    try {
+      if (!user) return;
+      
+      const { error } = await supabase
+        .from('requested_meds')
+        .insert({
+          medicine_name: newRequest.medicine_name,
+          quantity: newRequest.quantity,
+          need_by_date: newRequest.need_by_date,
+          recipient_entity_id: user.id,
+          status: "uploaded"
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
       toast({
-        title: "Prescription Uploaded",
-        description: "Your prescription has been uploaded successfully.",
+        title: "Success",
+        description: "Medicine request submitted successfully"
+      });
+      
+      // Reset form and refresh data
+      setNewRequest({
+        medicine_name: "",
+        quantity: 0,
+        need_by_date: ""
+      });
+      
+      if (user) {
+        await fetchMedicineRequests(user.id);
+      }
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit medicine request",
+        variant: "destructive"
       });
     }
   };
-  
+
+  const handleProfileInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditedProfileData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      if (!user || !editedProfileData) return;
+      
+      const { error } = await supabase
+        .from('recipients')
+        .update({
+          name: editedProfileData.name,
+          org_name: editedProfileData.org_name,
+          address: editedProfileData.address,
+          phone: editedProfileData.phone
+        })
+        .eq('entity_id', user.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setProfileData(editedProfileData as RecipientProfile);
+      setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully"
+      });
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+        <span className="text-lg">Loading...</span>
+      </div>
+    );
+  }
+
   return (
     <>
       <Navbar />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
-          <h1 className="text-3xl font-bold text-medishare-dark mb-6">Recipient Dashboard</h1>
+          {user && <WelcomeMessage user={user} userTypeTitle="Recipient" />}
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Sidebar */}
@@ -143,25 +307,32 @@ const RecipientDashboard = () => {
                 <CardContent className="p-0">
                   <div className="flex flex-col h-auto items-stretch gap-2 bg-transparent p-1">
                     <button 
+                      onClick={() => setActiveTab("requests")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "requests" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Package size={18} />
+                      <span>My Medicine Requests</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("new-request")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "new-request" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Search size={18} />
+                      <span>Request New Medicine</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("history")} 
+                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "history" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
+                    >
+                      <Clock size={18} />
+                      <span>Request History</span>
+                    </button>
+                    <button 
                       onClick={() => setActiveTab("profile")} 
                       className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "profile" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
                     >
                       <UserCircle size={18} />
                       <span>Profile</span>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("browse")} 
-                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "browse" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
-                    >
-                      <Search size={18} />
-                      <span>Browse Medicines</span>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("requests")} 
-                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "requests" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
-                    >
-                      <Clock size={18} />
-                      <span>Request Status</span>
                     </button>
                     <button 
                       onClick={() => setActiveTab("notifications")} 
@@ -170,13 +341,6 @@ const RecipientDashboard = () => {
                       <Bell size={18} />
                       <span>Notifications</span>
                     </button>
-                    <button 
-                      onClick={() => setActiveTab("history")} 
-                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "history" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
-                    >
-                      <FileText size={18} />
-                      <span>Transaction History</span>
-                    </button>
                   </div>
                 </CardContent>
               </Card>
@@ -184,241 +348,305 @@ const RecipientDashboard = () => {
             
             {/* Main Content */}
             <div className="md:col-span-9">
-              {activeTab === "profile" && (
+              {activeTab === "requests" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Recipient Profile</CardTitle>
-                    <CardDescription>Manage your personal or institutional information</CardDescription>
+                    <CardTitle>My Medicine Requests</CardTitle>
+                    <CardDescription>View and manage your medicine requests</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label htmlFor="name" className="text-sm font-medium">Full Name / Institution Name</label>
-                          <Input id="name" placeholder="John Doe / City Hospital" defaultValue="City Hospital" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-                          <Input id="email" type="email" placeholder="contact@cityhospital.org" defaultValue="contact@cityhospital.org" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
-                          <Input id="phone" placeholder="+91 9876543210" defaultValue="+91 9876543210" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="digilocker" className="text-sm font-medium">DigiLocker ID</label>
-                          <Input id="digilocker" placeholder="Your DigiLocker ID" defaultValue="DL12345678" readOnly />
-                        </div>
+                    {medicineRequests.length > 0 ? (
+                      <div className="space-y-4">
+                        {medicineRequests.map((request) => (
+                          <div key={request.id} className="border rounded-lg overflow-hidden">
+                            <div 
+                              className={`p-4 cursor-pointer ${
+                                request.status === 'uploaded' ? 'bg-amber-50' : 
+                                request.status === 'received' ? 'bg-green-50' : 'bg-white'
+                              }`}
+                              onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-medium text-lg">{request.medicine_name}</h3>
+                                    <span 
+                                      className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                        request.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
+                                        request.status === 'received' ? 'bg-green-100 text-green-800' : 
+                                        'bg-gray-100 text-gray-800'
+                                      }`}
+                                    >
+                                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-sm text-gray-600">
+                                    <p><span className="font-medium">Quantity:</span> {request.quantity}</p>
+                                    <p><span className="font-medium">Needed by:</span> {new Date(request.need_by_date).toLocaleDateString()}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Select 
+                                    value={request.status} 
+                                    onValueChange={(value) => handleRequestStatusChange(request.id, value)}
+                                  >
+                                    <SelectTrigger className="w-[130px]">
+                                      <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="uploaded">Uploaded</SelectItem>
+                                      <SelectItem value="received">Received</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {expandedRequest === request.id ? (
+                                    <ChevronUp className="h-5 w-5 text-gray-500" />
+                                  ) : (
+                                    <ChevronDown className="h-5 w-5 text-gray-500" />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {expandedRequest === request.id && (
+                              <div className="p-4 border-t bg-gray-50">
+                                <h4 className="font-medium text-sm text-gray-700 mb-2">NGO Details</h4>
+                                {request.ngo_entity_id && request.ngo_name ? (
+                                  <div className="space-y-1 text-sm">
+                                    <p><span className="font-medium">NGO Name:</span> {request.ngo_name}</p>
+                                    {request.ngo_address && <p><span className="font-medium">Address:</span> {request.ngo_address}</p>}
+                                    {request.ngo_phone && <p><span className="font-medium">Contact:</span> {request.ngo_phone}</p>}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-500">No NGO has been assigned to this request yet.</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="address" className="text-sm font-medium">Address</label>
-                        <Textarea id="address" placeholder="123 Main St, City, State" defaultValue="78 Hospital Road, Dadar, Mumbai, Maharashtra" />
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>You haven't requested any medicines yet.</p>
+                        <Button 
+                          className="mt-4 bg-medishare-blue" 
+                          onClick={() => setActiveTab("new-request")}
+                        >
+                          Request Medicine
+                        </Button>
                       </div>
-                      
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              
+              {activeTab === "new-request" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Request New Medicine</CardTitle>
+                    <CardDescription>Submit a request for medicine</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmitNewRequest} className="space-y-4">
                       <div className="space-y-2">
-                        <label htmlFor="medicalNeeds" className="text-sm font-medium">Regular Medical Needs (Optional)</label>
-                        <Textarea 
-                          id="medicalNeeds" 
-                          placeholder="List any regular medications you need" 
-                          defaultValue="Insulin, Blood Pressure Medication, Antibiotics" 
-                          className="min-h-[100px]"
+                        <label htmlFor="medicine_name" className="text-sm font-medium">Medicine Name</label>
+                        <Input 
+                          id="medicine_name" 
+                          name="medicine_name" 
+                          value={newRequest.medicine_name}
+                          onChange={handleNewRequestChange}
+                          placeholder="Enter medicine name"
+                          required
                         />
                       </div>
                       
-                      <Button type="button" className="bg-medishare-blue hover:bg-medishare-blue/90">
-                        Save Changes
+                      <div className="space-y-2">
+                        <label htmlFor="quantity" className="text-sm font-medium">Quantity Needed</label>
+                        <Input 
+                          id="quantity" 
+                          name="quantity" 
+                          type="number"
+                          value={newRequest.quantity || ''}
+                          onChange={handleNewRequestChange}
+                          placeholder="Enter quantity"
+                          min={1}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="need_by_date" className="text-sm font-medium">Needed By Date</label>
+                        <DatePicker 
+                          date={newRequest.need_by_date ? new Date(newRequest.need_by_date) : undefined}
+                          onSelect={handleDateChange}
+                          disabled={(date) => date < new Date()}
+                        />
+                      </div>
+                      
+                      <Button type="submit" className="bg-medishare-blue">
+                        Submit Request
                       </Button>
                     </form>
                   </CardContent>
                 </Card>
               )}
               
-              {activeTab === "browse" && (
+              {activeTab === "history" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Browse Available Medicines</CardTitle>
-                    <CardDescription>Search for available medicines and submit requests</CardDescription>
+                    <CardTitle>Request History</CardTitle>
+                    <CardDescription>View history of all your medicine requests</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-amber-800">Upload Prescription</h4>
-                            <p className="text-sm text-amber-700 mt-1">
-                              Please upload a valid prescription before requesting medicines.
-                            </p>
-                          </div>
-                          <div>
-                            <label className="cursor-pointer">
-                              <div className="flex items-center gap-2 px-4 py-2 bg-white border border-amber-300 rounded-md hover:bg-amber-50">
-                                <Upload size={16} className="text-amber-600" />
-                                <span className="text-sm text-amber-700">Upload</span>
-                              </div>
-                              <input 
-                                type="file" 
-                                className="hidden" 
-                                accept="image/*, application/pdf"
-                                onChange={handleFileUpload}
-                              />
-                            </label>
-                          </div>
-                        </div>
-                        {fileUploaded && (
-                          <div className="mt-2 flex items-center gap-2 text-green-600">
-                            <CheckCircle2 size={16} />
-                            <span className="text-sm">Prescription uploaded successfully!</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-5 w-5" />
-                            <Input 
-                              placeholder="Search medicines..." 
-                              className="pl-10" 
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <div className="w-full md:w-1/4">
-                          <Select value={medicineType} onValueChange={setMedicineType}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Filter by type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Types</SelectItem>
-                              <SelectItem value="paracetamol">Paracetamol</SelectItem>
-                              <SelectItem value="insulin">Insulin</SelectItem>
-                              <SelectItem value="antibiotic">Antibiotics</SelectItem>
-                              <SelectItem value="vitamin">Vitamins</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="w-full md:w-1/4">
-                          <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="distance">Nearest First</SelectItem>
-                              <SelectItem value="name">Name (A-Z)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {filteredAndSortedMedicines.length > 0 ? (
-                          filteredAndSortedMedicines.map((medicine) => (
-                            <div key={medicine.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                              <div className="flex flex-col md:flex-row justify-between gap-4">
-                                <div>
-                                  <h3 className="font-medium text-lg">{medicine.name}</h3>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Quantity:</span> {medicine.quantity}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">NGO:</span> {medicine.ngo}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Location:</span> {medicine.location}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                      <MapPin className="h-4 w-4 inline mr-1" />
-                                      <span className="text-green-600 font-medium">{medicine.distance} km away</span>
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center">
-                                  <Button 
-                                    className="bg-medishare-orange hover:bg-medishare-gold w-full md:w-auto"
-                                    onClick={() => handleRequest(medicine)}
+                    {medicineRequests.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Needed By</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">NGO</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {medicineRequests.map((request) => (
+                              <tr key={request.id} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-4 text-sm">{request.id}</td>
+                                <td className="px-4 py-4 text-sm">{request.medicine_name}</td>
+                                <td className="px-4 py-4 text-sm">{request.quantity}</td>
+                                <td className="px-4 py-4 text-sm">{new Date(request.need_by_date).toLocaleDateString()}</td>
+                                <td className="px-4 py-4 text-sm">
+                                  <span 
+                                    className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                      request.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
+                                      request.status === 'received' ? 'bg-green-100 text-green-800' : 
+                                      'bg-gray-100 text-gray-800'
+                                    }`}
                                   >
-                                    Request Medicine
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-12">
-                            <p className="text-gray-500">No medicines found matching your search.</p>
-                          </div>
-                        )}
+                                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-4 text-sm">{request.ngo_name || "Not assigned"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No request history available.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
               
-              {activeTab === "requests" && (
+              {activeTab === "profile" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Request Status</CardTitle>
-                    <CardDescription>Track the status of your medicine requests</CardDescription>
+                    <div className="flex justify-between">
+                      <div>
+                        <CardTitle>Recipient Profile</CardTitle>
+                        <CardDescription>Manage your profile information</CardDescription>
+                      </div>
+                      {!isEditing ? (
+                        <Button onClick={() => setIsEditing(true)} variant="outline">
+                          Edit Profile
+                        </Button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button onClick={() => setIsEditing(false)} variant="outline">
+                            Cancel
+                          </Button>
+                          <Button onClick={handleSaveProfile} className="bg-medishare-blue">
+                            Save
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {requestHistory.map((request) => (
-                        <div 
-                          key={request.id} 
-                          className={`p-4 border rounded-lg ${
-                            request.status === "Approved" 
-                              ? "bg-blue-50 border-blue-200" 
-                              : request.status === "Delivered" 
-                              ? "bg-green-50 border-green-200"
-                              : ""
-                          }`}
-                        >
-                          <div className="flex flex-col md:flex-row justify-between gap-4">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-medium text-lg">{request.medicine}</h3>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  request.status === "Approved" 
-                                    ? "bg-blue-100 text-blue-800" 
-                                    : request.status === "Pending" 
-                                    ? "bg-yellow-100 text-yellow-800" 
-                                    : "bg-green-100 text-green-800"
-                                }`}>
-                                  {request.status}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mt-2">
-                                <p className="text-sm text-gray-600">
-                                  <span className="font-medium">Quantity:</span> {request.quantity}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  <span className="font-medium">NGO:</span> {request.ngo}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  <span className="font-medium">Request Date:</span> {request.requestDate}
-                                </p>
-                                {request.deliveryDate && (
-                                  <p className="text-sm text-gray-600">
-                                    <span className="font-medium">Delivery Date:</span> {request.deliveryDate}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center">
-                              <Button 
-                                variant={request.status === "Delivered" ? "outline" : "default"}
-                                className={request.status === "Delivered" ? "" : "bg-medishare-blue hover:bg-medishare-blue/90"}
-                              >
-                                {request.status === "Delivered" ? "View Details" : "Track Request"}
-                              </Button>
-                            </div>
+                    {profileData ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Name</label>
+                            {isEditing ? (
+                              <Input 
+                                name="name" 
+                                value={editedProfileData.name || ''} 
+                                onChange={handleProfileInputChange} 
+                              />
+                            ) : (
+                              <p className="text-base">{profileData.name}</p>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Organization Name</label>
+                            {isEditing ? (
+                              <Input 
+                                name="org_name" 
+                                value={editedProfileData.org_name || ''} 
+                                onChange={handleProfileInputChange} 
+                              />
+                            ) : (
+                              <p className="text-base">{profileData.org_name || 'Not provided'}</p>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Phone Number</label>
+                            {isEditing ? (
+                              <Input 
+                                name="phone" 
+                                value={editedProfileData.phone || ''} 
+                                onChange={handleProfileInputChange} 
+                              />
+                            ) : (
+                              <p className="text-base">{profileData.phone || 'Not provided'}</p>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Email</label>
+                            <p className="text-base">{user?.email}</p>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Address</label>
+                          {isEditing ? (
+                            <Textarea 
+                              name="address" 
+                              value={editedProfileData.address || ''} 
+                              onChange={handleProfileInputChange} 
+                              className="min-h-[80px]"
+                            />
+                          ) : (
+                            <p className="text-base">{profileData.address || 'Not provided'}</p>
+                          )}
+                        </div>
+                        
+                        {(profileData.latitude && profileData.longitude) && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Location</label>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-medishare-blue" />
+                              <p className="text-base">
+                                Latitude: {profileData.latitude}, Longitude: {profileData.longitude}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>Profile information not available.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -427,103 +655,11 @@ const RecipientDashboard = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>Notifications</CardTitle>
-                    <CardDescription>Stay updated with the latest alerts and information</CardDescription>
+                    <CardDescription>Your recent notifications</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-blue-100 p-2 rounded-full">
-                            <CheckCircle2 size={18} className="text-blue-500" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-blue-800">Request Approved</h4>
-                            <p className="text-sm text-gray-600 mt-1">Your request for Insulin has been approved by Medical Aid Foundation.</p>
-                            <p className="text-xs text-gray-500 mt-2">1 hour ago</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-green-100 p-2 rounded-full">
-                            <Package size={18} className="text-green-500" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">New Medicine Available</h4>
-                            <p className="text-sm text-gray-600 mt-1">Paracetamol is now available from Health For All NGO.</p>
-                            <p className="text-xs text-gray-500 mt-2">Yesterday</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-yellow-100 p-2 rounded-full">
-                            <Bell size={18} className="text-yellow-500" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Reminder</h4>
-                            <p className="text-sm text-gray-600 mt-1">Your prescription will expire in 7 days. Please upload a new one.</p>
-                            <p className="text-xs text-gray-500 mt-2">2 days ago</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {activeTab === "history" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Transaction History</CardTitle>
-                    <CardDescription>View your past medicine requests and receipts</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">NGO</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Receipt</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {requestHistory.map((request) => (
-                            <tr key={request.id} className="border-b hover:bg-gray-50">
-                              <td className="px-4 py-4 text-sm">{request.id}</td>
-                              <td className="px-4 py-4 text-sm">{request.medicine}</td>
-                              <td className="px-4 py-4 text-sm">{request.quantity}</td>
-                              <td className="px-4 py-4 text-sm">{request.ngo}</td>
-                              <td className="px-4 py-4 text-sm">{request.requestDate}</td>
-                              <td className="px-4 py-4 text-sm">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  request.status === "Delivered" 
-                                    ? "bg-green-100 text-green-800" 
-                                    : request.status === "Approved" 
-                                    ? "bg-blue-100 text-blue-800" 
-                                    : "bg-yellow-100 text-yellow-800"
-                                }`}>
-                                  {request.status}
-                                </span>
-                              </td>
-                              <td className="px-4 py-4 text-sm">
-                                {request.status === "Delivered" && (
-                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
-                                    <FileText className="h-4 w-4 mr-1" /> Download
-                                  </Button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No notifications available at this time.</p>
                     </div>
                   </CardContent>
                 </Card>
