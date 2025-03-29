@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -62,19 +63,19 @@ const RecipientDashboard = () => {
         return;
       }
       
-      const userData = getUser();
-      if (!userData || userData.userType !== "recipient") {
+      const currentUser = getUser();
+      if (!currentUser || currentUser.userType !== "recipient") {
         navigate("/sign-in");
         return;
       }
       
-      setUser(userData);
+      setUser(currentUser);
       
       // Get entity_id from users table based on email
-      const { data: userData, error: userError } = await supabase
+      const { data: userEntityData, error: userError } = await supabase
         .from('users')
         .select('entity_id')
-        .eq('email', userData.email)
+        .eq('email', currentUser.email)
         .single();
       
       if (userError) {
@@ -88,7 +89,7 @@ const RecipientDashboard = () => {
         return;
       }
       
-      const entityId = userData?.entity_id;
+      const entityId = userEntityData?.entity_id;
       
       if (entityId) {
         await fetchMedicineRequests(entityId);
@@ -128,14 +129,14 @@ const RecipientDashboard = () => {
             .single();
           
           if (!ngoError && ngoData) {
-            requests[i].ngo_name = ngoData.name;
-            requests[i].ngo_address = ngoData.address;
-            requests[i].ngo_phone = ngoData.phone;
+            requests[i].ngo_name = ngoData.name || '';
+            requests[i].ngo_address = ngoData.address || '';
+            requests[i].ngo_phone = ngoData.phone || '';
           }
         }
       }
       
-      setMedicineRequests(requests);
+      setMedicineRequests(requests as MedicineRequest[]);
     } catch (error) {
       console.error('Error fetching medicine requests:', error);
       toast({
@@ -159,9 +160,14 @@ const RecipientDashboard = () => {
       if (error) {
         if (error.code === 'PGRST116') {
           // No profile found, create one
-          const newProfile: Partial<RecipientProfile> = {
+          const newProfile: RecipientProfile = {
             entity_id: entityId,
             name: user?.name || '',
+            org_name: null,
+            address: null,
+            phone: null,
+            latitude: null,
+            longitude: null
           };
           
           const { error: insertError } = await supabase
@@ -172,7 +178,7 @@ const RecipientDashboard = () => {
             throw insertError;
           }
           
-          setProfileData(newProfile as RecipientProfile);
+          setProfileData(newProfile);
           setEditedProfileData(newProfile);
         } else {
           throw error;
@@ -254,7 +260,7 @@ const RecipientDashboard = () => {
       if (!user) return;
       
       // Get entity_id from users table based on email
-      const { data: userData, error: userError } = await supabase
+      const { data: userEntityData, error: userError } = await supabase
         .from('users')
         .select('entity_id')
         .eq('email', user.email)
@@ -264,7 +270,7 @@ const RecipientDashboard = () => {
         throw userError;
       }
       
-      const entityId = userData?.entity_id;
+      const entityId = userEntityData?.entity_id;
       
       if (!entityId) {
         throw new Error('User entity ID not found');
@@ -320,7 +326,7 @@ const RecipientDashboard = () => {
       if (!user || !editedProfileData || !profileData) return;
       
       // Get entity_id from users table based on email
-      const { data: userData, error: userError } = await supabase
+      const { data: userEntityData, error: userError } = await supabase
         .from('users')
         .select('entity_id')
         .eq('email', user.email)
@@ -330,7 +336,7 @@ const RecipientDashboard = () => {
         throw userError;
       }
       
-      const entityId = userData?.entity_id;
+      const entityId = userEntityData?.entity_id;
       
       if (!entityId) {
         throw new Error('User entity ID not found');
@@ -339,7 +345,7 @@ const RecipientDashboard = () => {
       const { error } = await supabase
         .from('recipients')
         .update({
-          name: editedProfileData.name,
+          name: editedProfileData.name || profileData.name,
           org_name: editedProfileData.org_name,
           address: editedProfileData.address,
           phone: editedProfileData.phone
