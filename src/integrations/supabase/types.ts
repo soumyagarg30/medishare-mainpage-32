@@ -9,48 +9,240 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      user_profiles: {
+      chatbot: {
+        Row: {
+          created_at: string
+          id: number
+          message: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          message?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          message?: string | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      donated_meds: {
+        Row: {
+          date_added: string | null
+          donor_entity_id: string
+          expiry_date: string | null
+          id: number
+          image_url: string | null
+          ingredients: string | null
+          medicine_name: string | null
+          ngo_entity_id: string | null
+          quantity: number | null
+          status: string | null
+        }
+        Insert: {
+          date_added?: string | null
+          donor_entity_id: string
+          expiry_date?: string | null
+          id?: number
+          image_url?: string | null
+          ingredients?: string | null
+          medicine_name?: string | null
+          ngo_entity_id?: string | null
+          quantity?: number | null
+          status?: string | null
+        }
+        Update: {
+          date_added?: string | null
+          donor_entity_id?: string
+          expiry_date?: string | null
+          id?: number
+          image_url?: string | null
+          ingredients?: string | null
+          medicine_name?: string | null
+          ngo_entity_id?: string | null
+          quantity?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donated_meds_donor_entity_id_fkey"
+            columns: ["donor_entity_id"]
+            isOneToOne: false
+            referencedRelation: "donors"
+            referencedColumns: ["entity_id"]
+          },
+          {
+            foreignKeyName: "donated_meds_ngo_entity_id_fkey"
+            columns: ["ngo_entity_id"]
+            isOneToOne: false
+            referencedRelation: "intermediary_ngo"
+            referencedColumns: ["entity_id"]
+          },
+        ]
+      }
+      donors: {
+        Row: {
+          address: string
+          entity_id: string
+          latitude: string | null
+          longitude: string
+          name: string
+          org_name: string
+          phone: string | null
+        }
+        Insert: {
+          address: string
+          entity_id: string
+          latitude?: string | null
+          longitude: string
+          name: string
+          org_name: string
+          phone?: string | null
+        }
+        Update: {
+          address?: string
+          entity_id?: string
+          latitude?: string | null
+          longitude?: string
+          name?: string
+          org_name?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      intermediary_ngo: {
         Row: {
           address: string | null
-          created_at: string | null
-          department: string | null
-          email: string
-          id: string
+          entity_id: string
+          latitude: string | null
+          longitude: string | null
           name: string | null
-          organization: string | null
-          phone_number: string | null
-          updated_at: string | null
-          user_type: string
-          verification_id: string | null
-          verified: boolean | null
+          phone: string | null
         }
         Insert: {
           address?: string | null
-          created_at?: string | null
-          department?: string | null
-          email: string
-          id: string
+          entity_id: string
+          latitude?: string | null
+          longitude?: string | null
           name?: string | null
-          organization?: string | null
-          phone_number?: string | null
-          updated_at?: string | null
-          user_type: string
-          verification_id?: string | null
-          verified?: boolean | null
+          phone?: string | null
         }
         Update: {
           address?: string | null
-          created_at?: string | null
-          department?: string | null
-          email?: string
-          id?: string
+          entity_id?: string
+          latitude?: string | null
+          longitude?: string | null
           name?: string | null
-          organization?: string | null
-          phone_number?: string | null
-          updated_at?: string | null
-          user_type?: string
-          verification_id?: string | null
-          verified?: boolean | null
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      recipients: {
+        Row: {
+          address: string | null
+          entity_id: string
+          latitude: string | null
+          longitude: string | null
+          name: string
+          org_name: string | null
+          phone: string | null
+        }
+        Insert: {
+          address?: string | null
+          entity_id: string
+          latitude?: string | null
+          longitude?: string | null
+          name: string
+          org_name?: string | null
+          phone?: string | null
+        }
+        Update: {
+          address?: string | null
+          entity_id?: string
+          latitude?: string | null
+          longitude?: string | null
+          name?: string
+          org_name?: string | null
+          phone?: string | null
+        }
+        Relationships: []
+      }
+      requested_meds: {
+        Row: {
+          id: string
+          medicine_name: string | null
+          need_by_date: string | null
+          ngo_entity_id: string | null
+          quantity: number | null
+          recipient_entity_id: string
+          status: string | null
+        }
+        Insert: {
+          id?: string
+          medicine_name?: string | null
+          need_by_date?: string | null
+          ngo_entity_id?: string | null
+          quantity?: number | null
+          recipient_entity_id: string
+          status?: string | null
+        }
+        Update: {
+          id?: string
+          medicine_name?: string | null
+          need_by_date?: string | null
+          ngo_entity_id?: string | null
+          quantity?: number | null
+          recipient_entity_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requested_meds_ngo_entity_id_fkey"
+            columns: ["ngo_entity_id"]
+            isOneToOne: false
+            referencedRelation: "intermediary_ngo"
+            referencedColumns: ["entity_id"]
+          },
+          {
+            foreignKeyName: "requested_meds_recipient_entity_id_fkey"
+            columns: ["recipient_entity_id"]
+            isOneToOne: false
+            referencedRelation: "recipients"
+            referencedColumns: ["entity_id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          entity_id: string
+          entity_type: string
+          id: number
+          verification_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          entity_id: string
+          entity_type: string
+          id?: number
+          verification_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          entity_id?: string
+          entity_type?: string
+          id?: number
+          verification_id?: string
         }
         Relationships: []
       }
