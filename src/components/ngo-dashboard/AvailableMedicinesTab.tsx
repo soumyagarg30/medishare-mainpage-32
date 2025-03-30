@@ -50,7 +50,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       const { data, error } = await supabase
         .from('donated_meds')
         .select('*')
-        .eq('status', 'uploaded');
+        .eq('status', 'uploaded')
+        .is('ngo_entity_id', null);
       
       if (error) throw error;
       
@@ -208,6 +209,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                         className={`px-2 py-1 text-xs font-medium rounded-full ${
                           medicine.status === "uploaded"
                             ? "bg-green-100 text-green-800"
+                            : medicine.status === "rejected"
+                            ? "bg-red-100 text-red-800"
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
@@ -221,7 +224,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                         size="sm" 
                         className="bg-medishare-blue hover:bg-medishare-blue/90"
                         onClick={() => handleAcceptMedicine(medicine.id)}
-                        disabled={acceptingIds.has(medicine.id)}
+                        disabled={acceptingIds.has(medicine.id) || medicine.status === 'rejected'}
                       >
                         {acceptingIds.has(medicine.id) ? (
                           <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
