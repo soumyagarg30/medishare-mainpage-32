@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { getUser } from "@/utils/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MedicineRequest {
   id: string;
@@ -86,29 +86,50 @@ const MedicineRequestsTab = () => {
     fetchRequests();
   }, [userEntityId]);
 
-  const handleStatusChange = (requestId: string, newStatus: string) => {
-    // Check if the medicine request is rejected
-    const request = requests.find((req) => req.id === requestId);
-    if (request?.status === "rejected") {
+  const handleStatusChange = async (requestId: string, newStatus: string) => {
+    try {
+      // Check if the medicine request is rejected
+      const request = requests.find((req) => req.id === requestId);
+      if (request?.status === "rejected") {
+        toast({
+          title: "Cannot update status",
+          description: "Rejected medicine requests cannot be updated.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // In a real app, this would be an API call to update the status in the database
+      // Update the status in the Supabase database
+      const { error } = await supabase
+        .from('requested_meds')
+        .update({ status: newStatus })
+        .eq('id', requestId);
+
+      if (error) {
+        console.error("Error updating request status:", error);
+        throw error;
+      }
+
+      // Update the local state
+      setRequests((prevRequests) =>
+        prevRequests.map((req) =>
+          req.id === requestId ? { ...req, status: newStatus } : req
+        )
+      );
+
       toast({
-        title: "Cannot update status",
-        description: "Rejected medicine requests cannot be updated.",
+        title: "Status updated",
+        description: `Medicine request status updated to ${newStatus}`,
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update request status",
         variant: "destructive",
       });
-      return;
     }
-
-    // In a real app, this would be an API call to update the status in the database
-    setRequests((prevRequests) =>
-      prevRequests.map((req) =>
-        req.id === requestId ? { ...req, status: newStatus } : req
-      )
-    );
-
-    toast({
-      title: "Status updated",
-      description: `Medicine request status updated to ${newStatus}`,
-    });
   };
 
   // Function to get the appropriate status options based on current status
@@ -118,10 +139,10 @@ const MedicineRequestsTab = () => {
       return [{ value: "rejected", label: "Rejected" }];
     }
 
-    // For recipient, we allow them to update only to "received" or "uploaded"
+    // Return all allowed status options, regardless of current status
     return [
-      { value: currentStatus, label: currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1) },
       { value: "uploaded", label: "Uploaded" },
+      { value: "approved", label: "Approved" },
       { value: "received", label: "Received" }
     ];
   };
