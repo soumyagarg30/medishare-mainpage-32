@@ -135,10 +135,10 @@ const DonateTab = () => {
       if (formData.imageFile) {
         const fileExt = formData.imageFile.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `medicine-images/${fileName}`;
+        const filePath = `ocr-images/${fileName}`;
 
         const { error: uploadError, data: fileData } = await supabase.storage
-          .from('medicine-images')
+          .from('ocr-images')
           .upload(filePath, formData.imageFile, {
             cacheControl: '3600',
             upsert: false,
@@ -149,7 +149,7 @@ const DonateTab = () => {
         }
 
         const { data } = supabase.storage
-          .from('medicine-images')
+          .from('ocr-images')
           .getPublicUrl(filePath);
 
         if (data) {

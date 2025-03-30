@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { getUser } from "@/utils/auth";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 
 interface DonatedMedicine {
   id: string;
@@ -39,8 +47,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       const { data, error } = await supabase
         .from('donated_meds')
         .select('*')
-        .eq('status', 'uploaded')
-        .is('ngo_entity_id', null);
+        .eq('status', 'uploaded');
       
       if (error) throw error;
       
@@ -102,10 +109,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
         description: "You have successfully accepted this medicine donation.",
       });
       
-      // Remove the accepted medicine from the displayed list
-      setMedicines(prevMedicines => 
-        prevMedicines.filter(med => med.id !== medicineId)
-      );
+      // Refresh the medicines list
+      fetchMedicines();
     } catch (error) {
       console.error("Error accepting medicine:", error);
       toast({
@@ -132,35 +137,35 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="px-4 py-2 text-left">Medicine Name</th>
-                  <th className="px-4 py-2 text-left">Quantity</th>
-                  <th className="px-4 py-2 text-left">Expiry Date</th>
-                  <th className="px-4 py-2 text-left">Donor</th>
-                  <th className="px-4 py-2 text-left">Date Added</th>
-                  <th className="px-4 py-2 text-left">Status</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Medicine Name</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Expiry Date</TableHead>
+                  <TableHead>Donor</TableHead>
+                  <TableHead>Date Added</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {medicines.map((medicine) => (
-                  <tr key={medicine.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">{medicine.medicine_name || 'N/A'}</td>
-                    <td className="px-4 py-3">{medicine.quantity || 'N/A'}</td>
-                    <td className="px-4 py-3">
+                  <TableRow key={medicine.id}>
+                    <TableCell>{medicine.medicine_name || 'N/A'}</TableCell>
+                    <TableCell>{medicine.quantity || 'N/A'}</TableCell>
+                    <TableCell>
                       {medicine.expiry_date 
                         ? new Date(medicine.expiry_date).toLocaleDateString() 
                         : 'N/A'}
-                    </td>
-                    <td className="px-4 py-3">{medicine.donor_name || 'Unknown'}</td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell>{medicine.donor_name || 'Unknown'}</TableCell>
+                    <TableCell>
                       {medicine.date_added 
                         ? new Date(medicine.date_added).toLocaleDateString() 
                         : 'N/A'}
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell>
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${
                           medicine.status === "uploaded"
@@ -172,8 +177,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                           ? medicine.status.charAt(0).toUpperCase() + medicine.status.slice(1) 
                           : 'Unknown'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell>
                       <Button 
                         size="sm" 
                         className="bg-medishare-blue hover:bg-medishare-blue/90"
@@ -181,11 +186,11 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                       >
                         Accept
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>

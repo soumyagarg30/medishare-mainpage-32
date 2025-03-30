@@ -4,6 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 
 interface MedicineRequest {
   id: string;
@@ -31,11 +39,10 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      // Fetch medicine requests that don't have an NGO assigned
+      // Fetch all medicine requests for display
       const { data, error } = await supabase
         .from('requested_meds')
-        .select('*')
-        .is('ngo_entity_id', null);
+        .select('*');
       
       if (error) throw error;
       
@@ -94,9 +101,13 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
         description: "You have successfully approved this medicine request.",
       });
       
-      // Remove the approved request from the displayed list
+      // Update the request in the UI
       setRequests(prevRequests => 
-        prevRequests.filter(req => req.id !== requestId)
+        prevRequests.map(req => 
+          req.id === requestId 
+            ? { ...req, status: 'approved', ngo_entity_id: ngoEntityId } 
+            : req
+        )
       );
     } catch (error) {
       console.error("Error approving medicine request:", error);
@@ -105,6 +116,19 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
         description: "Failed to approve medicine request",
         variant: "destructive",
       });
+    }
+  };
+
+  const getStatusBadgeClass = (status: string | null) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-amber-100 text-amber-800';
+      case 'approved':
+        return 'bg-blue-100 text-blue-800';
+      case 'fulfilled':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -120,60 +144,60 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
           </div>
         ) : requests.length === 0 ? (
           <div className="text-center py-8">
-            <p>No pending medicine requests found</p>
+            <p>No medicine requests found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="px-4 py-2 text-left">Medicine Name</th>
-                  <th className="px-4 py-2 text-left">Quantity</th>
-                  <th className="px-4 py-2 text-left">Recipient</th>
-                  <th className="px-4 py-2 text-left">Need By</th>
-                  <th className="px-4 py-2 text-left">Status</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Medicine Name</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Recipient</TableHead>
+                  <TableHead>Need By</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {requests.map((request) => (
-                  <tr key={request.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">{request.medicine_name || 'N/A'}</td>
-                    <td className="px-4 py-3">{request.quantity || 'N/A'}</td>
-                    <td className="px-4 py-3">{request.recipient_name || 'Unknown'}</td>
-                    <td className="px-4 py-3">
+                  <TableRow key={request.id}>
+                    <TableCell>{request.medicine_name || 'N/A'}</TableCell>
+                    <TableCell>{request.quantity || 'N/A'}</TableCell>
+                    <TableCell>{request.recipient_name || 'Unknown'}</TableCell>
+                    <TableCell>
                       {request.need_by_date 
                         ? new Date(request.need_by_date).toLocaleDateString() 
                         : 'Not specified'}
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell>
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          !request.status || request.status === "pending"
-                            ? "bg-amber-100 text-amber-800"
-                            : request.status === "approved"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
+                          getStatusBadgeClass(request.status)
                         }`}
                       >
                         {request.status 
                           ? request.status.charAt(0).toUpperCase() + request.status.slice(1) 
                           : 'Pending'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button 
-                        size="sm" 
-                        className="bg-medishare-blue hover:bg-medishare-blue/90"
-                        onClick={() => handleAcceptRequest(request.id)}
-                      >
-                        Accept
-                      </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      {(!request.ngo_entity_id || request.ngo_entity_id === ngoEntityId) && 
+                       request.status !== 'fulfilled' && (
+                        <Button 
+                          size="sm" 
+                          className="bg-medishare-blue hover:bg-medishare-blue/90"
+                          onClick={() => handleAcceptRequest(request.id)}
+                          disabled={request.status === 'approved'}
+                        >
+                          {request.status === 'approved' ? 'Approved' : 'Accept'}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>
