@@ -84,6 +84,7 @@ const AdminDashboard = () => {
               }
               return user;
             });
+            setFilteredUsers(updatedUsers);
             return updatedUsers;
           });
         }
@@ -171,26 +172,41 @@ const AdminDashboard = () => {
     setProcessingUser(selectedUser.id);
     
     try {
+      // Ensure status matches exactly what the database constraint allows
+      let verificationStatus;
+      if (status === 'Verified') {
+        verificationStatus = 'Verified';
+      } else if (status === 'Rejected') {
+        verificationStatus = 'Rejected';
+      } else {
+        verificationStatus = 'Waiting approval';
+      }
+      
+      console.log(`Updating user ${selectedUser.id} with status: ${verificationStatus}`);
+      
       // Update the user's verification status in the database
       const { error } = await supabase
         .from('users')
         .update({ 
-          verification: status
+          verification: verificationStatus
         })
         .eq('id', selectedUser.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating user status:", error);
+        throw error;
+      }
 
       // Update local state
       const updatedUsers = users.map((user) =>
-        user.id === selectedUser.id ? { ...user, verification: status } : user
+        user.id === selectedUser.id ? { ...user, verification: verificationStatus } : user
       );
       setUsers(updatedUsers);
       setFilteredUsers(updatedUsers);
       
       toast({
         title: "Success",
-        description: `User has been ${status.toLowerCase()}.`,
+        description: `User has been ${verificationStatus.toLowerCase()}.`,
       });
       
       setIsDialogOpen(false);
