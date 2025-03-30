@@ -61,6 +61,39 @@ const AdminDashboard = () => {
 
     // Fetch users
     fetchUsers();
+
+    // Set up real-time subscription for users table
+    const usersChannel = supabase
+      .channel('public:users')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'users' 
+        }, 
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Update the local state when a user is updated
+          setUsers(prevUsers => {
+            const updatedUsers = prevUsers.map(user => {
+              if (user.id === payload.new.id) {
+                return {
+                  ...user,
+                  verification: payload.new.verification
+                };
+              }
+              return user;
+            });
+            return updatedUsers;
+          });
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on component unmount
+    return () => {
+      supabase.removeChannel(usersChannel);
+    };
   }, [navigate]);
 
   useEffect(() => {
