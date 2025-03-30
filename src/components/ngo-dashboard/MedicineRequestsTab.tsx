@@ -39,10 +39,11 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      // Fetch all medicine requests for display
+      // Fetch all medicine requests that are not rejected
       const { data, error } = await supabase
         .from('requested_meds')
-        .select('*');
+        .select('*')
+        .not('status', 'eq', 'rejected');
       
       if (error) throw error;
       
@@ -86,6 +87,25 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
     }
     
     try {
+      // First check if the request has been rejected by an admin
+      const { data: requestData, error: checkError } = await supabase
+        .from('requested_meds')
+        .select('status')
+        .eq('id', requestId)
+        .single();
+      
+      if (checkError) throw checkError;
+      
+      // If request is rejected, prevent accepting it
+      if (requestData && requestData.status === 'rejected') {
+        toast({
+          title: "Cannot Accept",
+          description: "This request has been rejected by an administrator and cannot be accepted.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('requested_meds')
         .update({
@@ -127,6 +147,8 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
         return 'bg-blue-100 text-blue-800';
       case 'fulfilled':
         return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -183,7 +205,7 @@ const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
                     </TableCell>
                     <TableCell>
                       {(!request.ngo_entity_id || request.ngo_entity_id === ngoEntityId) && 
-                       request.status !== 'fulfilled' && (
+                       request.status !== 'fulfilled' && request.status !== 'rejected' && (
                         <Button 
                           size="sm" 
                           className="bg-medishare-blue hover:bg-medishare-blue/90"

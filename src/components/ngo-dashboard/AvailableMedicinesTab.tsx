@@ -46,6 +46,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
     setLoading(true);
     try {
       // Fetch medicines that are uploaded and not assigned to any NGO
+      // And not rejected by admin
       const { data, error } = await supabase
         .from('donated_meds')
         .select('*')
@@ -99,6 +100,27 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
     setAcceptingIds(prev => new Set(prev).add(medicineId));
     
     try {
+      // First, check if the medicine has been rejected by an admin
+      const { data: medicineData, error: checkError } = await supabase
+        .from('donated_meds')
+        .select('status')
+        .eq('id', parseInt(medicineId))
+        .single();
+      
+      if (checkError) {
+        throw checkError;
+      }
+      
+      // If medicine is rejected, prevent accepting it
+      if (medicineData && medicineData.status === 'rejected') {
+        toast({
+          title: "Cannot Accept",
+          description: "This medicine has been rejected by an administrator and cannot be accepted.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Use 'approved' instead of 'assigned' to match the database constraint
       const { error } = await supabase
         .from('donated_meds')
