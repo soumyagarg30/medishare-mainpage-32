@@ -76,10 +76,11 @@ const medicineConditions = [
 ];
 
 interface DonateFormProps {
+  donorEntityId: string;
   onSuccess: () => void;
 }
 
-const DonateForm = ({ onSuccess }: DonateFormProps) => {
+const DonateForm = ({ donorEntityId, onSuccess }: DonateFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormValues>({

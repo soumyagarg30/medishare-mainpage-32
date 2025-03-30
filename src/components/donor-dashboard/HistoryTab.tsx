@@ -82,7 +82,7 @@ const HistoryTab = () => {
     : mockDonations.filter(donation => donation.status === filter);
 
   // Format date strings
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return "";
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
