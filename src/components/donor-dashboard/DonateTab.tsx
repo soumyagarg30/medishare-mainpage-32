@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import DonateForm from "./DonateForm";
 import DonationSuccess from "./DonationSuccess";
 import { UserData } from "@/utils/auth";
+import { Plus } from "lucide-react";
 
 interface DonateTabProps {
   user: UserData;
@@ -32,6 +33,12 @@ const DonateTab: React.FC<DonateTabProps> = ({ user }) => {
     setShowIframe(true);
   };
 
+  // Function to open donation form in a new tab
+  const openDonationInNewTab = () => {
+    const donationUrl = `https://med-donor-dashboard-83.vercel.app?entity_id=${entityId}`;
+    window.open(donationUrl, '_blank');
+  };
+
   return (
     <div className="p-6">
       {!showIframe && !donationSuccess && (
@@ -41,12 +48,21 @@ const DonateTab: React.FC<DonateTabProps> = ({ user }) => {
             Your unused medicines can save lives. We ensure they reach those who need them most.
             Simply fill out the form, and our team will arrange for collection or drop-off.
           </p>
-          <Button
-            className="bg-medishare-orange hover:bg-medishare-gold text-white font-medium px-6 py-2"
-            onClick={handleNewDonation}
-          >
-            Donate New Medicine
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button
+              className="bg-medishare-orange hover:bg-medishare-gold text-white font-medium px-6 py-2"
+              onClick={handleNewDonation}
+            >
+              Donate New Medicine
+            </Button>
+            
+            <Button
+              className="bg-medishare-blue hover:bg-medishare-blue/80 text-white font-medium px-6 py-2"
+              onClick={openDonationInNewTab}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Donations
+            </Button>
+          </div>
         </div>
       )}
       
