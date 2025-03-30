@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,7 +204,7 @@ const HistoryTab = () => {
                 <div 
                   className={`p-4 cursor-pointer ${
                     donation.status === 'uploaded' ? 'bg-amber-50' : 
-                    donation.status === 'received' ? 'bg-green-50' : 'bg-white'
+                    donation.status === 'approved' ? 'bg-green-50' : 'bg-white'
                   }`}
                   onClick={() => setExpandedDonation(expandedDonation === donation.id ? null : donation.id)}
                 >
@@ -216,7 +215,7 @@ const HistoryTab = () => {
                         <span 
                           className={`px-2 py-1 text-xs rounded-full font-medium ${
                             donation.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
-                            donation.status === 'received' ? 'bg-green-100 text-green-800' : 
+                            donation.status === 'approved' ? 'bg-green-100 text-green-800' : 
                             'bg-gray-100 text-gray-800'
                           }`}
                         >

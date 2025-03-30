@@ -3,26 +3,34 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUser } from "@/utils/auth";
+import { Upload, Check } from "lucide-react";
+
+interface DonateForm {
+  medicineName: string;
+  quantity: number;
+  expiryDate: string;
+  ingredients: string;
+  imageFile?: File | null;
+}
 
 const DonateTab = () => {
-  const [donorEntityId, setDonorEntityId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [recentDonations, setRecentDonations] = useState<any[]>([]);
-  
-  const [newDonation, setNewDonation] = useState({
-    medicine_name: "",
-    quantity: "",
-    expiry_date: "",
+  const [formData, setFormData] = useState<DonateForm>({
+    medicineName: "",
+    quantity: 0,
+    expiryDate: "",
     ingredients: "",
-    image_file: null as File | null
+    imageFile: null
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [donorEntityId, setDonorEntityId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [donationSuccess, setDonationSuccess] = useState(false);
 
   useEffect(() => {
     const fetchDonorId = async () => {
@@ -36,28 +44,6 @@ const DonateTab = () => {
         
         if (!error && data) {
           setDonorEntityId(data.entity_id);
-          console.log("Donor entity ID fetched:", data.entity_id);
-          
-          // Fetch recent donations for this donor
-          fetchRecentDonations(data.entity_id);
-          
-          // Set up real-time subscription for this donor's donations
-          const donationsChannel = supabase
-            .channel('donated_meds_changes')
-            .on('postgres_changes', {
-              event: '*', 
-              schema: 'public',
-              table: 'donated_meds',
-              filter: `donor_entity_id=eq.${data.entity_id}`
-            }, (payload) => {
-              console.log('Real-time update received:', payload);
-              fetchRecentDonations(data.entity_id);
-            })
-            .subscribe();
-            
-          return () => {
-            supabase.removeChannel(donationsChannel);
-          };
         } else {
           console.error('Error fetching donor ID:', error);
           toast({
@@ -71,164 +57,140 @@ const DonateTab = () => {
 
     fetchDonorId();
   }, []);
-  
-  const fetchRecentDonations = async (entityId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('donated_meds')
-        .select('*')
-        .eq('donor_entity_id', entityId)
-        .order('date_added', { ascending: false })
-        .limit(3);
-        
-      if (error) {
-        throw error;
-      }
-      
-      setRecentDonations(data || []);
-    } catch (err) {
-      console.error("Error fetching recent donations:", err);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setNewDonation(prev => ({ ...prev, [name]: value }));
+    setFormData({
+      ...formData,
+      [name]: value
+    });
   };
-  
-  const handleDateChange = (date: Date | undefined) => {
-    setNewDonation(prev => ({
-      ...prev,
-      expiry_date: date ? date.toISOString().split('T')[0] : ''
-    }));
+
+  const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: parseInt(value) || 0
+    });
   };
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
-      // Check file type
-      if (!file.type.match('image/jpeg|image/jpg|image/png')) {
-        toast({
-          title: "Invalid File",
-          description: "Please upload a JPG, JPEG, or PNG image",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setNewDonation(prev => ({
-        ...prev,
-        image_file: file
-      }));
-      
-      // Create image preview
+      setFormData({
+        ...formData,
+        imageFile: file
+      });
+
+      // Create preview URL
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
-  
+
+  const resetForm = () => {
+    setFormData({
+      medicineName: "",
+      quantity: 0,
+      expiryDate: "",
+      ingredients: "",
+      imageFile: null
+    });
+    setImagePreview(null);
+    setUploadProgress(0);
+    setDonationSuccess(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!donorEntityId) {
       toast({
         title: "Error",
-        description: "Donor information not found",
+        description: "Donor information not found. Please sign in again.",
         variant: "destructive"
       });
       return;
     }
-    
-    if (!newDonation.medicine_name || !newDonation.quantity || !newDonation.expiry_date || !newDonation.image_file) {
+
+    // Validation
+    if (!formData.medicineName || formData.quantity <= 0 || !formData.expiryDate) {
       toast({
-        title: "Missing Information",
-        description: "Please fill all required fields and upload an image",
+        title: "Missing Fields",
+        description: "Please fill all required fields.",
         variant: "destructive"
       });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
-      console.log("Attempting to submit donation with donor ID:", donorEntityId);
-      
-      // Generate a unique file name using donor_entity_id and date
-      const currentDate = new Date().toISOString().split('T')[0];
-      const fileExt = newDonation.image_file.name.split('.').pop();
-      const fileName = `${donorEntityId}/${currentDate}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      
-      console.log("Uploading image to path:", fileName);
-      
-      // Upload image to Supabase storage with upsert set to true
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('ocr-images')
-        .upload(fileName, newDonation.image_file, {
-          cacheControl: '3600',
-          upsert: true // Changed from false to true
-        });
-      
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        throw uploadError;
+      let imageUrl = null;
+
+      // Upload image if one was provided
+      if (formData.imageFile) {
+        const fileExt = formData.imageFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `medicine-images/${fileName}`;
+
+        const { error: uploadError, data: fileData } = await supabase.storage
+          .from('medicine-images')
+          .upload(filePath, formData.imageFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data } = supabase.storage
+          .from('medicine-images')
+          .getPublicUrl(filePath);
+
+        if (data) {
+          imageUrl = data.publicUrl;
+        }
       }
-      
-      console.log("Image uploaded successfully, data:", uploadData);
-      
-      // Get the public URL for the uploaded image
-      const { data: publicUrlData } = supabase.storage
-        .from('ocr-images')
-        .getPublicUrl(fileName);
-      
-      const imageUrl = publicUrlData.publicUrl;
-      console.log("Generated public URL:", imageUrl);
-      
-      // Insert donation record with image URL
-      const { data: donationData, error: donationError } = await supabase
+
+      // Record the donation in the database
+      const { error: insertError } = await supabase
         .from('donated_meds')
         .insert({
-          medicine_name: newDonation.medicine_name,
-          quantity: parseInt(newDonation.quantity),
-          expiry_date: newDonation.expiry_date,
-          ingredients: newDonation.ingredients,
+          medicine_name: formData.medicineName,
+          quantity: formData.quantity,
+          expiry_date: formData.expiryDate,
+          ingredients: formData.ingredients,
+          image_url: imageUrl,
           donor_entity_id: donorEntityId,
-          status: "uploaded",
-          date_added: currentDate,
-          image_url: imageUrl
+          date_added: new Date().toISOString(),
+          status: 'uploaded'
         });
-      
-      if (donationError) {
-        console.error("Database insert error:", donationError);
-        throw donationError;
+
+      if (insertError) {
+        throw insertError;
       }
-      
+
+      // Show success message
+      setDonationSuccess(true);
       toast({
-        title: "Success",
-        description: "Medicine donation submitted successfully"
+        title: "Donation Successful",
+        description: "Your medicine donation has been recorded.",
       });
-      
-      // Reset form
-      setNewDonation({
-        medicine_name: "",
-        quantity: "",
-        expiry_date: "",
-        ingredients: "",
-        image_file: null
-      });
-      setImagePreview(null);
-      
-      // Refresh recent donations
-      fetchRecentDonations(donorEntityId);
-      
+
+      // Reset form after a short delay
+      setTimeout(() => {
+        resetForm();
+      }, 2000);
     } catch (error) {
-      console.error('Error submitting donation:', error);
+      console.error('Error processing donation:', error);
       toast({
         title: "Error",
-        description: "Failed to submit medicine donation. Please try again.",
+        description: "Failed to process your donation. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -237,129 +199,125 @@ const DonateTab = () => {
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Donate Medicines</CardTitle>
-        <CardDescription>Help those in need by donating medicines</CardDescription>
+        <CardTitle>Donate Medicine</CardTitle>
+        <CardDescription>Complete the form to donate unused medicine</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {donationSuccess ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="bg-green-100 p-3 rounded-full mb-4">
+              <Check className="h-10 w-10 text-green-600" />
+            </div>
+            <h3 className="text-xl font-medium mb-2">Donation Complete!</h3>
+            <p className="text-gray-600 mb-6">
+              Your medicine has been added to our database and will be matched with someone in need.
+            </p>
+            <Button onClick={resetForm}>Donate Another Medicine</Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label htmlFor="medicine_name" className="text-sm font-medium">
-                Medicine Name
-              </label>
+              <Label htmlFor="medicineName">Medicine Name <span className="text-red-500">*</span></Label>
               <Input
-                id="medicine_name"
-                name="medicine_name"
-                value={newDonation.medicine_name}
+                id="medicineName"
+                name="medicineName"
+                value={formData.medicineName}
                 onChange={handleInputChange}
-                placeholder="Enter medicine name"
+                placeholder="Enter the name of the medicine"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label htmlFor="quantity" className="text-sm font-medium">
-                Quantity
-              </label>
+              <Label htmlFor="quantity">Quantity <span className="text-red-500">*</span></Label>
               <Input
                 id="quantity"
                 name="quantity"
                 type="number"
-                value={newDonation.quantity}
-                onChange={handleInputChange}
-                placeholder="Enter quantity"
                 min="1"
+                value={formData.quantity}
+                onChange={handleNumberInputChange}
+                placeholder="Enter the quantity"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="expiry_date" className="text-sm font-medium">
-                Expiry Date
-              </label>
-              <DatePicker 
-                date={newDonation.expiry_date ? new Date(newDonation.expiry_date) : undefined}
-                onSelect={handleDateChange}
-                disabled={(date) => date < new Date()}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="image_file" className="text-sm font-medium">
-                Medicine Image (JPG/JPEG/PNG)
-              </label>
+              <Label htmlFor="expiryDate">Expiry Date <span className="text-red-500">*</span></Label>
               <Input
-                id="image_file"
-                name="image_file"
-                type="file"
-                accept="image/jpeg, image/jpg, image/png"
-                onChange={handleFileChange}
+                id="expiryDate"
+                name="expiryDate"
+                type="date"
+                value={formData.expiryDate}
+                onChange={handleInputChange}
                 required
               />
-              {imagePreview && (
-                <img 
-                  src={imagePreview} 
-                  alt="Medicine Preview" 
-                  className="mt-2 rounded-md max-h-40" 
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ingredients">Ingredients</Label>
+              <Textarea
+                id="ingredients"
+                name="ingredients"
+                value={formData.ingredients}
+                onChange={handleInputChange}
+                placeholder="List the active ingredients"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image">Medicine Image</Label>
+              <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                <input
+                  type="file"
+                  id="image"
+                  name="image"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="ingredients" className="text-sm font-medium">
-              Ingredients
-            </label>
-            <Textarea
-              id="ingredients"
-              name="ingredients"
-              value={newDonation.ingredients}
-              onChange={handleInputChange}
-              placeholder="List the ingredients (optional)"
-              rows={4}
-            />
-          </div>
-
-          <div className="pt-4">
-            <Button type="submit" className="w-full md:w-auto bg-medishare-blue" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit Donation"
-              )}
-            </Button>
-          </div>
-        </form>
-
-        {recentDonations.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-medium mb-3">Recent Donations</h3>
-            <div className="space-y-3">
-              {recentDonations.map((donation) => (
-                <div key={donation.id} className="border rounded p-3 bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{donation.medicine_name}</p>
-                      <p className="text-sm text-gray-600">Quantity: {donation.quantity}</p>
-                      <p className="text-sm text-gray-600">Added: {new Date(donation.date_added).toLocaleDateString()}</p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      donation.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
-                      donation.status === 'received' ? 'bg-green-100 text-green-800' : 
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {donation.status.charAt(0).toUpperCase() + donation.status.slice(1)}
-                    </span>
+                {imagePreview ? (
+                  <div className="mt-2">
+                    <img 
+                      src={imagePreview} 
+                      alt="Medicine preview" 
+                      className="mx-auto h-32 object-contain rounded-md" 
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setFormData({...formData, imageFile: null});
+                        setImagePreview(null);
+                      }}
+                      className="mt-2 text-sm text-red-600 hover:text-red-800"
+                    >
+                      Remove image
+                    </button>
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <label 
+                    htmlFor="image" 
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                    <span className="text-sm font-medium">Click to upload an image</span>
+                    <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</span>
+                  </label>
+                )}
+              </div>
             </div>
-          </div>
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+            >
+              {loading ? "Processing..." : "Donate Medicine"}
+            </Button>
+          </form>
         )}
       </CardContent>
     </Card>
