@@ -47,7 +47,6 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is authenticated and is an admin
     if (!isAuthenticated()) {
       navigate("/sign-in");
       return;
@@ -59,10 +58,8 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Fetch users
     fetchUsers();
 
-    // Set up real-time subscription for users table
     const usersChannel = supabase
       .channel('public:users')
       .on('postgres_changes', 
@@ -73,7 +70,6 @@ const AdminDashboard = () => {
         }, 
         (payload) => {
           console.log('Real-time update received:', payload);
-          // Update the local state when a user is updated
           setUsers(prevUsers => {
             const updatedUsers = prevUsers.map(user => {
               if (user.id === payload.new.id) {
@@ -91,7 +87,6 @@ const AdminDashboard = () => {
       )
       .subscribe();
 
-    // Cleanup subscription on component unmount
     return () => {
       supabase.removeChannel(usersChannel);
     };
@@ -113,7 +108,6 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      // Get all users from the users table
       const { data: usersData, error } = await supabase
         .from('users')
         .select('*');
@@ -128,7 +122,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Process and set user data
       const processedUsers = usersData.map((user) => ({
         id: user.id,
         name: user.entity_type === 'Donor' ? 'Donor' : 
@@ -173,7 +166,6 @@ const AdminDashboard = () => {
     setStatusError(null);
     
     try {
-      // Map the button status to the exact database values
       let verificationStatus: string;
       
       switch(status) {
@@ -183,17 +175,12 @@ const AdminDashboard = () => {
         case 'Rejected':
           verificationStatus = 'Rejected';
           break;
-        case 'Reset Status':
-        case 'Waiting approval':
-          verificationStatus = 'Waiting approval';
-          break;
         default:
           verificationStatus = 'Waiting approval';
       }
       
       console.log(`Updating user ${selectedUser.id} with status: ${verificationStatus}`);
       
-      // Update the user's verification status in the database
       const { error } = await supabase
         .from('users')
         .update({ 
@@ -212,7 +199,6 @@ const AdminDashboard = () => {
         throw error;
       }
 
-      // Update local state
       const updatedUsers = users.map((user) =>
         user.id === selectedUser.id ? { ...user, verification: verificationStatus } : user
       );
@@ -227,7 +213,6 @@ const AdminDashboard = () => {
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error updating user status:", error);
-      // Error is already handled above
     } finally {
       setProcessingUser(null);
     }
@@ -272,7 +257,6 @@ const AdminDashboard = () => {
             </p>
           </div>
 
-          {/* Dashboard Tabs */}
           <div className="flex flex-wrap gap-4 mb-8">
             <Button
               variant={activeTab === "users" ? "default" : "outline"}
@@ -304,7 +288,6 @@ const AdminDashboard = () => {
             </Button>
           </div>
 
-          {/* Users Management Tab */}
           {activeTab === "users" && (
             <Card>
               <CardHeader>
@@ -381,13 +364,10 @@ const AdminDashboard = () => {
             </Card>
           )}
 
-          {/* Medicine Donations Tab */}
           {activeTab === "donations" && <MedicineDonationsTab />}
 
-          {/* Medicine Requests Tab */}
           {activeTab === "requests" && <MedicineRequestsTab />}
 
-          {/* Analytics Tab */}
           {activeTab === "analytics" && (
             <Card>
               <CardHeader>
@@ -403,7 +383,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* User Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -483,21 +462,6 @@ const AdminDashboard = () => {
                       <X className="h-4 w-4 mr-1" />
                     )}
                     Reject User
-                  </Button>
-                )}
-                
-                {selectedUser.verification !== 'Waiting approval' && (
-                  <Button
-                    onClick={() => handleVerifyUser('Reset Status')}
-                    disabled={processingUser === selectedUser.id}
-                    className="w-full"
-                  >
-                    {processingUser === selectedUser.id ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1"/>
-                    ) : (
-                      <Clock className="h-4 w-4 mr-1" />
-                    )}
-                    Reset Status
                   </Button>
                 )}
               </div>
