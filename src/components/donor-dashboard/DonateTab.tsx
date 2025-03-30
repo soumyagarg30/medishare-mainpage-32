@@ -1,104 +1,88 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { getUser } from "@/utils/auth";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import DonateForm from "./DonateForm";
 import DonationSuccess from "./DonationSuccess";
+import { UserData } from "@/utils/auth";
 
-const DonateTab = () => {
-  const [donorEntityId, setDonorEntityId] = useState<string | null>(null);
+interface DonateTabProps {
+  user: UserData;
+}
+
+const DonateTab: React.FC<DonateTabProps> = ({ user }) => {
+  const [showForm, setShowForm] = useState(false);
   const [donationSuccess, setDonationSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [showIframe, setShowIframe] = useState(false);
+  
+  // Get the entity_id from the user object
+  const entityId = user.entityId || '';
 
-  useEffect(() => {
-    const fetchDonorId = async () => {
-      try {
-        setIsLoading(true);
-        const user = getUser();
-        
-        if (!user || !user.email) {
-          toast({
-            title: "Authentication Error",
-            description: "Please sign in to access this feature",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        const { data, error } = await supabase
-          .from('users')
-          .select('entity_id')
-          .eq('email', user.email)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching donor ID:', error);
-          throw error;
-        }
-        
-        if (data) {
-          setDonorEntityId(data.entity_id);
-        } else {
-          toast({
-            title: "Error",
-            description: "Donor profile not found",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error('Error in fetchDonorId:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load donor information",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDonorId();
-  }, []);
-
+  const handleNewDonation = () => {
+    // Show iframe instead of the form
+    setShowIframe(true);
+  };
+  
   const handleDonationSuccess = () => {
+    setShowForm(false);
     setDonationSuccess(true);
   };
 
-  const handleDonateAnother = () => {
+  const handleNewDonationAfterSuccess = () => {
     setDonationSuccess(false);
+    setShowIframe(true);
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Donate Medicine</CardTitle>
-        <CardDescription>Complete the form to donate unused medicine</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {donationSuccess ? (
-          <DonationSuccess onDonateAnother={handleDonateAnother} />
-        ) : (
-          isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medishare-blue"></div>
-            </div>
-          ) : (
-            donorEntityId ? (
-              <DonateForm 
-                donorEntityId={donorEntityId} 
-                onSuccess={handleDonationSuccess} 
-              />
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>Unable to load your donor profile. Please try refreshing the page.</p>
-              </div>
-            )
-          )
-        )}
-      </CardContent>
-    </Card>
+    <div className="p-6">
+      {!showIframe && !donationSuccess && (
+        <div className="text-center my-10">
+          <h2 className="text-2xl font-bold text-medishare-blue mb-4">Donate Medicines</h2>
+          <p className="max-w-lg mx-auto text-gray-600 mb-8">
+            Your unused medicines can save lives. We ensure they reach those who need them most.
+            Simply fill out the form, and our team will arrange for collection or drop-off.
+          </p>
+          <Button
+            className="bg-medishare-orange hover:bg-medishare-gold text-white font-medium px-6 py-2"
+            onClick={handleNewDonation}
+          >
+            Donate New Medicine
+          </Button>
+        </div>
+      )}
+      
+      {showIframe && (
+        <div className="w-full">
+          <Button 
+            variant="outline"
+            className="mb-4"
+            onClick={() => setShowIframe(false)}
+          >
+            ← Back
+          </Button>
+          <div className="w-full h-[calc(100vh-200px)] border rounded-md overflow-hidden">
+            <iframe 
+              src={`https://med-donor-dashboard-83.vercel.app?entity_id=${entityId}`}
+              className="w-full h-full"
+              title="Medicine Donation Form"
+            >
+              Loading donation form...
+            </iframe>
+          </div>
+        </div>
+      )}
+
+      {showForm && !showIframe && !donationSuccess && (
+        <DonateForm 
+          onCancel={() => setShowForm(false)} 
+          onSuccess={handleDonationSuccess}
+          user={user}
+        />
+      )}
+
+      {donationSuccess && (
+        <DonationSuccess onNewDonation={handleNewDonationAfterSuccess} />
+      )}
+    </div>
   );
 };
 
