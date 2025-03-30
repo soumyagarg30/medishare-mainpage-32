@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { getUser } from "@/utils/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DonatedMedicine {
   id: string;
@@ -16,7 +17,11 @@ interface DonatedMedicine {
   ngo_entity_id?: string;
 }
 
-const AvailableMedicinesTab = () => {
+interface AvailableMedicinesTabProps {
+  ngoEntityId?: string;
+}
+
+const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
   const [medicines, setMedicines] = useState<DonatedMedicine[]>([]);
   const [loading, setLoading] = useState(true);
   const user = getUser();
@@ -53,7 +58,7 @@ const AvailableMedicinesTab = () => {
             status: "accepted",
             donor_entity_id: "donor-3",
             donor_name: "National Medical Store",
-            ngo_entity_id: user?.entity_id
+            ngo_entity_id: user?.entity_id || ngoEntityId
           },
           {
             id: "med-4",
@@ -81,7 +86,7 @@ const AvailableMedicinesTab = () => {
     };
 
     fetchMedicines();
-  }, [user?.entity_id]);
+  }, [user?.entity_id, ngoEntityId]);
 
   const handleAcceptMedicine = (medicineId: string) => {
     // In a real app, this would be an API call to update the status in the database
@@ -90,7 +95,7 @@ const AvailableMedicinesTab = () => {
         med.id === medicineId ? { 
           ...med, 
           status: "accepted", 
-          ngo_entity_id: user?.entity_id 
+          ngo_entity_id: user?.entity_id || ngoEntityId
         } : med
       )
     );
@@ -161,7 +166,7 @@ const AvailableMedicinesTab = () => {
                         >
                           Accept
                         </Button>
-                      ) : medicine.ngo_entity_id === user?.entity_id ? (
+                      ) : medicine.ngo_entity_id === (user?.entity_id || ngoEntityId) ? (
                         <span className="text-sm text-green-600">Accepted by you</span>
                       ) : (
                         <span className="text-sm text-gray-500">Accepted by another NGO</span>

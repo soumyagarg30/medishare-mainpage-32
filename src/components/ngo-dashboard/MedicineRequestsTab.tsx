@@ -17,7 +17,11 @@ interface MedicineRequest {
   ngo_entity_id?: string;
 }
 
-const MedicineRequestsTab = () => {
+interface MedicineRequestsTabProps {
+  ngoEntityId?: string;
+}
+
+const MedicineRequestsTab = ({ ngoEntityId }: MedicineRequestsTabProps) => {
   const [requests, setRequests] = useState<MedicineRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const user = getUser();
@@ -47,7 +51,7 @@ const MedicineRequestsTab = () => {
             requested_date: "2023-06-10",
             recipient_entity_id: "recipient-2",
             recipient_name: "Jane Smith",
-            ngo_entity_id: user?.entity_id
+            ngo_entity_id: user?.entity_id || ngoEntityId
           },
           {
             id: "req-3",
@@ -86,7 +90,7 @@ const MedicineRequestsTab = () => {
     };
 
     fetchRequests();
-  }, [user?.entity_id]);
+  }, [user?.entity_id, ngoEntityId]);
 
   const handleAcceptRequest = (requestId: string) => {
     // In a real app, this would be an API call to update the status in the database
@@ -95,7 +99,7 @@ const MedicineRequestsTab = () => {
         req.id === requestId ? { 
           ...req, 
           status: "approved", 
-          ngo_entity_id: user?.entity_id 
+          ngo_entity_id: user?.entity_id || ngoEntityId
         } : req
       )
     );
@@ -172,7 +176,7 @@ const MedicineRequestsTab = () => {
                         >
                           Accept
                         </Button>
-                      ) : request.ngo_entity_id === user?.entity_id ? (
+                      ) : request.ngo_entity_id === (user?.entity_id || ngoEntityId) ? (
                         <span className="text-sm text-green-600">Accepted by you</span>
                       ) : request.status === "approved" ? (
                         <span className="text-sm text-gray-500">Accepted by another NGO</span>

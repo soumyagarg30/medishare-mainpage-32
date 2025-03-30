@@ -21,6 +21,7 @@ const MedicineRequestsTab = () => {
   const [requests, setRequests] = useState<MedicineRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const user = getUser();
+  const userEntityId = user?.entity_id || user?.id;
 
   useEffect(() => {
     // Fetch medicine requests
@@ -36,7 +37,7 @@ const MedicineRequestsTab = () => {
             medical_condition: "Bacterial infection",
             status: "pending",
             requested_date: "2023-06-15",
-            recipient_entity_id: user?.entity_id || "",
+            recipient_entity_id: userEntityId || "",
           },
           {
             id: "req-2",
@@ -45,7 +46,7 @@ const MedicineRequestsTab = () => {
             medical_condition: "Fever",
             status: "approved",
             requested_date: "2023-06-10",
-            recipient_entity_id: user?.entity_id || "",
+            recipient_entity_id: userEntityId || "",
             ngo_entity_id: "ngo-123",
           },
           {
@@ -55,7 +56,7 @@ const MedicineRequestsTab = () => {
             medical_condition: "Pain relief",
             status: "rejected",
             requested_date: "2023-06-05",
-            recipient_entity_id: user?.entity_id || "",
+            recipient_entity_id: userEntityId || "",
           },
           {
             id: "req-4",
@@ -64,7 +65,7 @@ const MedicineRequestsTab = () => {
             medical_condition: "Acid reflux",
             status: "delivered",
             requested_date: "2023-05-20",
-            recipient_entity_id: user?.entity_id || "",
+            recipient_entity_id: userEntityId || "",
             ngo_entity_id: "ngo-456",
           },
         ];
@@ -83,7 +84,7 @@ const MedicineRequestsTab = () => {
     };
 
     fetchRequests();
-  }, [user?.entity_id]);
+  }, [userEntityId]);
 
   const handleStatusChange = (requestId: string, newStatus: string) => {
     // Check if the medicine request is rejected

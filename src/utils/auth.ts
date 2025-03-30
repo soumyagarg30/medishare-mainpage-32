@@ -20,6 +20,7 @@ export interface UserData {
   phoneNumber?: string;
   verificationId?: string; // GST ID, UID, DigiLocker ID, or Admin code
   department?: string; // For admin users
+  entity_id?: string; // Add entity_id property to fix TypeScript errors
 }
 
 // Local storage keys
