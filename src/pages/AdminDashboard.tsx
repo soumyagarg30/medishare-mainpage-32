@@ -33,6 +33,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Filter, Search, UserPlus, Check, X } from "lucide-react";
+import MedicineDonationsTab from "@/components/admin-dashboard/MedicineDonationsTab";
+import MedicineRequestsTab from "@/components/admin-dashboard/MedicineRequestsTab";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("users");
@@ -192,11 +194,18 @@ const AdminDashboard = () => {
               Users Management
             </Button>
             <Button
-              variant={activeTab === "medicines" ? "default" : "outline"}
-              onClick={() => handleTabChange("medicines")}
-              className={activeTab === "medicines" ? "bg-medishare-orange" : ""}
+              variant={activeTab === "donations" ? "default" : "outline"}
+              onClick={() => handleTabChange("donations")}
+              className={activeTab === "donations" ? "bg-medishare-orange" : ""}
             >
-              Medicines
+              Medicine Donations
+            </Button>
+            <Button
+              variant={activeTab === "requests" ? "default" : "outline"}
+              onClick={() => handleTabChange("requests")}
+              className={activeTab === "requests" ? "bg-medishare-orange" : ""}
+            >
+              Medicine Requests
             </Button>
             <Button
               variant={activeTab === "analytics" ? "default" : "outline"}
@@ -294,19 +303,11 @@ const AdminDashboard = () => {
             </Card>
           )}
 
-          {/* Medicines Tab */}
-          {activeTab === "medicines" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Medicine Inventory</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-10 text-gray-500">
-                  Medicine management functionality will be added here.
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Medicine Donations Tab */}
+          {activeTab === "donations" && <MedicineDonationsTab />}
+
+          {/* Medicine Requests Tab */}
+          {activeTab === "requests" && <MedicineRequestsTab />}
 
           {/* Analytics Tab */}
           {activeTab === "analytics" && (
