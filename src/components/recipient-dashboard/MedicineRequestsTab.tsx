@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,11 +139,18 @@ const MedicineRequestsTab = () => {
     if (currentStatus === "rejected") {
       return [{ value: "rejected", label: "Rejected" }];
     }
+    
+    // If the status is approved, only allow changing to "received"
+    if (currentStatus === "approved") {
+      return [
+        { value: "approved", label: "Approved" },
+        { value: "received", label: "Received" }
+      ];
+    }
 
-    // Return all allowed status options, regardless of current status
+    // For other statuses (like uploaded), allow all options
     return [
       { value: "uploaded", label: "Uploaded" },
-      { value: "approved", label: "Approved" },
       { value: "received", label: "Received" }
     ];
   };
