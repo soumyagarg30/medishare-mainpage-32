@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Check } from "lucide-react";
 
 interface DonatedMedicine {
   id: string;
@@ -35,6 +36,7 @@ interface AvailableMedicinesTabProps {
 const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
   const [medicines, setMedicines] = useState<DonatedMedicine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [acceptingIds, setAcceptingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchMedicines();
@@ -93,30 +95,44 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       return;
     }
     
+    // Add to accepting state to show loading indicator
+    setAcceptingIds(prev => new Set(prev).add(medicineId));
+    
     try {
+      // Check if the status can be updated directly to assigned
       const { error } = await supabase
         .from('donated_meds')
         .update({
           ngo_entity_id: ngoEntityId,
-          status: 'approved'
+          status: 'assigned'
         })
         .eq('id', parseInt(medicineId));
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error accepting medicine:", error);
+        throw error;
+      }
       
       toast({
         title: "Medicine Accepted",
         description: "You have successfully accepted this medicine donation.",
       });
       
-      // Refresh the medicines list
-      fetchMedicines();
+      // Remove the accepted medicine from the list
+      setMedicines(prev => prev.filter(medicine => medicine.id !== medicineId));
     } catch (error) {
       console.error("Error accepting medicine:", error);
       toast({
         title: "Error",
-        description: "Failed to accept medicine donation",
+        description: "Failed to accept medicine donation. Please try again.",
         variant: "destructive",
+      });
+    } finally {
+      // Remove from accepting state
+      setAcceptingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(medicineId);
+        return newSet;
       });
     }
   };
@@ -183,7 +199,13 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                         size="sm" 
                         className="bg-medishare-blue hover:bg-medishare-blue/90"
                         onClick={() => handleAcceptMedicine(medicine.id)}
+                        disabled={acceptingIds.has(medicine.id)}
                       >
+                        {acceptingIds.has(medicine.id) ? (
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
+                        ) : (
+                          <Check className="h-4 w-4 mr-1" />
+                        )}
                         Accept
                       </Button>
                     </TableCell>
