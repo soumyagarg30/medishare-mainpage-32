@@ -15,7 +15,7 @@ const DonateTab: React.FC<DonateTabProps> = ({ user }) => {
   const [showIframe, setShowIframe] = useState(false);
   
   // Get the entity_id from the user object
-  const entityId = user.entityId || '';
+  const entityId = user.entity_id || '';
 
   const handleNewDonation = () => {
     // Show iframe instead of the form
@@ -73,14 +73,13 @@ const DonateTab: React.FC<DonateTabProps> = ({ user }) => {
 
       {showForm && !showIframe && !donationSuccess && (
         <DonateForm 
-          onCancel={() => setShowForm(false)} 
+          donorEntityId={entityId}
           onSuccess={handleDonationSuccess}
-          user={user}
         />
       )}
 
       {donationSuccess && (
-        <DonationSuccess onNewDonation={handleNewDonationAfterSuccess} />
+        <DonationSuccess onDonateAnother={handleNewDonationAfterSuccess} />
       )}
     </div>
   );
