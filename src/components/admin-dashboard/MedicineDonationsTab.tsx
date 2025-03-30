@@ -26,6 +26,7 @@ const MedicineDonationsTab = () => {
   const [filteredDonations, setFilteredDonations] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchDonations();
@@ -83,13 +84,19 @@ const MedicineDonationsTab = () => {
   };
 
   const handleStatusChange = async (id: number, newStatus: string) => {
+    // Add ID to processing set
+    setProcessingIds(prev => new Set(prev).add(id));
+    
     try {
+      console.log(`Updating donation ${id} status to ${newStatus}`);
+      
       const { error } = await supabase
         .from("donated_meds")
         .update({ status: newStatus })
         .eq("id", id);
 
       if (error) {
+        console.error("Error updating status:", error);
         throw error;
       }
 
@@ -112,8 +119,15 @@ const MedicineDonationsTab = () => {
       console.error("Error updating donation status:", error);
       toast({
         title: "Error",
-        description: "Failed to update donation status. Please try again.",
+        description: `Failed to update donation status: ${error.message || error}`,
         variant: "destructive",
+      });
+    } finally {
+      // Remove ID from processing set
+      setProcessingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
       });
     }
   };
@@ -202,30 +216,47 @@ const MedicineDonationsTab = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={processingIds.has(donation.id)}
                           className="h-8 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                           onClick={() => handleStatusChange(donation.id, "approved")}
                         >
-                          <Check className="h-4 w-4 mr-1" /> Approve
+                          {processingIds.has(donation.id) ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-700 border-t-transparent mr-1"/>
+                          ) : (
+                            <Check className="h-4 w-4 mr-1" />
+                          )}
+                          Approve
                         </Button>
                       )}
                       {donation.status !== "rejected" && (
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={processingIds.has(donation.id)}
                           className="h-8 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                           onClick={() => handleStatusChange(donation.id, "rejected")}
                         >
-                          <X className="h-4 w-4 mr-1" /> Reject
+                          {processingIds.has(donation.id) ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-700 border-t-transparent mr-1"/>
+                          ) : (
+                            <X className="h-4 w-4 mr-1" />
+                          )}
+                          Reject
                         </Button>
                       )}
                       {donation.status !== "uploaded" && (
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={processingIds.has(donation.id)}
                           className="h-8"
                           onClick={() => handleStatusChange(donation.id, "uploaded")}
                         >
-                          Reset
+                          {processingIds.has(donation.id) ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-700 border-t-transparent mr-1"/>
+                          ) : (
+                            "Reset"
+                          )}
                         </Button>
                       )}
                     </div>

@@ -26,6 +26,7 @@ const MedicineRequestsTab = () => {
   const [filteredRequests, setFilteredRequests] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchRequests();
@@ -83,13 +84,19 @@ const MedicineRequestsTab = () => {
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+    // Add ID to processing set
+    setProcessingIds(prev => new Set(prev).add(id));
+    
     try {
+      console.log(`Updating request ${id} status to ${newStatus}`);
+      
       const { error } = await supabase
         .from("requested_meds")
         .update({ status: newStatus })
         .eq("id", id);
 
       if (error) {
+        console.error("Error updating status:", error);
         throw error;
       }
 
@@ -112,8 +119,15 @@ const MedicineRequestsTab = () => {
       console.error("Error updating request status:", error);
       toast({
         title: "Error",
-        description: "Failed to update request status. Please try again.",
+        description: `Failed to update request status: ${error.message || error}`,
         variant: "destructive",
+      });
+    } finally {
+      // Remove ID from processing set
+      setProcessingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
       });
     }
   };
@@ -196,30 +210,47 @@ const MedicineRequestsTab = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={processingIds.has(request.id)}
                           className="h-8 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                           onClick={() => handleStatusChange(request.id, "approved")}
                         >
-                          <Check className="h-4 w-4 mr-1" /> Approve
+                          {processingIds.has(request.id) ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-700 border-t-transparent mr-1"/>
+                          ) : (
+                            <Check className="h-4 w-4 mr-1" />
+                          )}
+                          Approve
                         </Button>
                       )}
                       {request.status !== "rejected" && (
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={processingIds.has(request.id)}
                           className="h-8 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                           onClick={() => handleStatusChange(request.id, "rejected")}
                         >
-                          <X className="h-4 w-4 mr-1" /> Reject
+                          {processingIds.has(request.id) ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-700 border-t-transparent mr-1"/>
+                          ) : (
+                            <X className="h-4 w-4 mr-1" />
+                          )}
+                          Reject
                         </Button>
                       )}
                       {request.status !== "uploaded" && (
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={processingIds.has(request.id)}
                           className="h-8"
                           onClick={() => handleStatusChange(request.id, "uploaded")}
                         >
-                          Reset
+                          {processingIds.has(request.id) ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-700 border-t-transparent mr-1"/>
+                          ) : (
+                            "Reset"
+                          )}
                         </Button>
                       )}
                     </div>
