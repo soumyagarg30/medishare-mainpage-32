@@ -99,12 +99,12 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
     setAcceptingIds(prev => new Set(prev).add(medicineId));
     
     try {
-      // Check if the status can be updated directly to assigned
+      // Use 'approved' instead of 'assigned' to match the database constraint
       const { error } = await supabase
         .from('donated_meds')
         .update({
           ngo_entity_id: ngoEntityId,
-          status: 'assigned'
+          status: 'approved'
         })
         .eq('id', parseInt(medicineId));
         
