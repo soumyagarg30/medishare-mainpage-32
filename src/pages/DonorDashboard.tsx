@@ -11,8 +11,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUser, UserData, isAuthenticated } from "@/utils/auth";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ChevronDown, ChevronUp, UserCircle, Search, Clock, Bell, FileText, Package, MapPin } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, UserCircle, Search, Bell, FileText, Package, MapPin } from "lucide-react";
 import WelcomeMessage from "@/components/WelcomeMessage";
+import DonateTab from "@/components/donor-dashboard/DonateTab";
 
 interface DonatedMedicine {
   id: number;
@@ -50,13 +51,6 @@ const DonorDashboard = () => {
   const [profileData, setProfileData] = useState<DonorProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfileData, setEditedProfileData] = useState<Partial<DonorProfile>>({});
-  const [newDonation, setNewDonation] = useState({
-    medicine_name: "",
-    quantity: 0,
-    expiry_date: "",
-    ingredients: "",
-    image_file: null as File | null
-  });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -474,13 +468,6 @@ const DonorDashboard = () => {
                       <span>My Donations</span>
                     </button>
                     <button 
-                      onClick={() => setActiveTab("new-donation")} 
-                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "new-donation" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
-                    >
-                      <Search size={18} />
-                      <span>Donate New Medicine</span>
-                    </button>
-                    <button 
                       onClick={() => setActiveTab("profile")} 
                       className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "profile" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
                     >
@@ -567,103 +554,9 @@ const DonorDashboard = () => {
                     ) : (
                       <div className="text-center py-8 text-gray-500">
                         <p>You haven't donated any medicines yet.</p>
-                        <Button 
-                          className="mt-4 bg-medishare-blue" 
-                          onClick={() => setActiveTab("new-donation")}
-                        >
-                          Donate Medicine
-                        </Button>
+                        {user && <DonateTab user={user} />}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              )}
-              
-              {activeTab === "new-donation" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Donate New Medicine</CardTitle>
-                    <CardDescription>Submit a donation for medicine</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleSubmitNewDonation} className="space-y-4">
-                      <div className="space-y-2">
-                        <label htmlFor="medicine_name" className="text-sm font-medium">Medicine Name</label>
-                        <Input 
-                          id="medicine_name" 
-                          name="medicine_name" 
-                          value={newDonation.medicine_name}
-                          onChange={handleNewDonationChange}
-                          placeholder="Enter medicine name"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="quantity" className="text-sm font-medium">Quantity</label>
-                        <Input 
-                          id="quantity" 
-                          name="quantity" 
-                          type="number"
-                          value={newDonation.quantity || ''}
-                          onChange={handleNewDonationChange}
-                          placeholder="Enter quantity"
-                          min={1}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="expiry_date" className="text-sm font-medium">Expiry Date</label>
-                        <DatePicker 
-                          date={newDonation.expiry_date ? new Date(newDonation.expiry_date) : undefined}
-                          onSelect={handleDateChange}
-                          disabled={(date) => date < new Date()}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="ingredients" className="text-sm font-medium">Ingredients</label>
-                        <Textarea 
-                          id="ingredients" 
-                          name="ingredients" 
-                          value={newDonation.ingredients}
-                          onChange={handleNewDonationChange}
-                          placeholder="Enter ingredients"
-                          className="min-h-[80px]"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="image_file" className="text-sm font-medium">Medicine Image</label>
-                        <Input 
-                          id="image_file" 
-                          name="image_file" 
-                          type="file"
-                          accept="image/jpeg, image/jpg, image/png"
-                          onChange={handleFileChange}
-                          required
-                        />
-                        {imagePreview && (
-                          <img 
-                            src={imagePreview} 
-                            alt="Medicine Preview" 
-                            className="mt-2 rounded-md max-h-40" 
-                          />
-                        )}
-                      </div>
-                      
-                      <Button type="submit" className="bg-medishare-blue" disabled={isUploading}>
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          "Submit Donation"
-                        )}
-                      </Button>
-                    </form>
                   </CardContent>
                 </Card>
               )}
