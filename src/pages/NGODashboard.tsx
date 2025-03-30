@@ -27,6 +27,7 @@ import ImpactChart from "@/components/charts/ImpactChart";
 import DonationChart from "@/components/charts/DonationChart";
 import DonorsNearMeTab from "@/components/ngo-dashboard/DonorsNearMeTab";
 import MedicineRequestsTab from "@/components/ngo-dashboard/MedicineRequestsTab";
+import AvailableMedicinesTab from "@/components/ngo-dashboard/AvailableMedicinesTab";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -493,7 +494,7 @@ return (
               </Card>
             )}
             
-            {activeTab === "available" && <AvailableMedicinesTab ngoEntityId={ngoEntityId} />}
+            {activeTab === "available" && <AvailableMedicinesTab ngoEntityId={ngoEntityId || ""} />}
             
             {activeTab === "distribution" && (
               <Card>
@@ -554,7 +555,7 @@ return (
               </Card>
             )}
             
-            {activeTab === "requests" && <MedicineRequestsTab ngoEntityId={ngoEntityId} />}
+            {activeTab === "requests" && <MedicineRequestsTab ngoEntityId={ngoEntityId || ""} />}
             
             {activeTab === "impact" && (
               <Card>
