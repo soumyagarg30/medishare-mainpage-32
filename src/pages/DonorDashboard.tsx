@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -16,7 +15,7 @@ import { Loader2, ChevronDown, ChevronUp, UserCircle, Search, Clock, Bell, FileT
 import WelcomeMessage from "@/components/WelcomeMessage";
 
 interface DonatedMedicine {
-  id: number; // Changed back to number for consistency with state
+  id: number;
   medicine_name: string;
   quantity: number;
   expiry_date: string;
@@ -205,37 +204,6 @@ const DonorDashboard = () => {
       toast({
         title: "Error",
         description: "Failed to load your profile",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleDonationStatusChange = async (donationId: number, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('donated_meds')
-        .update({ status: newStatus })
-        .eq('id', donationId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      setDonatedMedicines((prev) => 
-        prev.map((donation) => 
-          donation.id === donationId ? { ...donation, status: newStatus } : donation
-        )
-      );
-      
-      toast({
-        title: "Status Updated",
-        description: `Donation status updated to ${newStatus}`
-      });
-    } catch (error) {
-      console.error('Error updating donation status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update donation status",
         variant: "destructive"
       });
     }
@@ -513,13 +481,6 @@ const DonorDashboard = () => {
                       <span>Donate New Medicine</span>
                     </button>
                     <button 
-                      onClick={() => setActiveTab("history")} 
-                      className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "history" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
-                    >
-                      <Clock size={18} />
-                      <span>Donation History</span>
-                    </button>
-                    <button 
                       onClick={() => setActiveTab("profile")} 
                       className={`flex items-center justify-start gap-2 px-4 py-3 rounded-sm ${activeTab === "profile" ? "bg-medishare-blue/10 text-medishare-blue" : "text-foreground"}`}
                     >
@@ -550,7 +511,6 @@ const DonorDashboard = () => {
                       <div className="space-y-4">
                         {donatedMedicines.map((donation) => (
                           <div key={donation.id} className="border rounded-lg overflow-hidden">
-                            {/* When we click on a donation to expand it, we ensure we're working with numbers */}
                             <div 
                               className={`p-4 cursor-pointer ${
                                 donation.status === 'uploaded' ? 'bg-amber-50' : 
@@ -577,19 +537,7 @@ const DonorDashboard = () => {
                                     <p><span className="font-medium">Expiry Date:</span> {new Date(donation.expiry_date).toLocaleDateString()}</p>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                  <Select 
-                                    value={donation.status} 
-                                    onValueChange={(value) => handleDonationStatusChange(donation.id, value)}
-                                  >
-                                    <SelectTrigger className="w-[130px]">
-                                      <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="uploaded">Uploaded</SelectItem>
-                                      <SelectItem value="received">Received</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                <div className="flex items-center">
                                   {expandedDonation === donation.id ? (
                                     <ChevronUp className="h-5 w-5 text-gray-500" />
                                   ) : (
@@ -716,59 +664,6 @@ const DonorDashboard = () => {
                         )}
                       </Button>
                     </form>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {activeTab === "history" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Donation History</CardTitle>
-                    <CardDescription>View history of all your medicine donations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {donatedMedicines.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Expiry Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">NGO</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {donatedMedicines.map((donation) => (
-                              <tr key={donation.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-4 text-sm">{donation.id}</td>
-                                <td className="px-4 py-4 text-sm">{donation.medicine_name}</td>
-                                <td className="px-4 py-4 text-sm">{donation.quantity}</td>
-                                <td className="px-4 py-4 text-sm">{new Date(donation.expiry_date).toLocaleDateString()}</td>
-                                <td className="px-4 py-4 text-sm">
-                                  <span 
-                                    className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                      donation.status === 'uploaded' ? 'bg-amber-100 text-amber-800' : 
-                                      donation.status === 'received' ? 'bg-green-100 text-green-800' : 
-                                      'bg-gray-100 text-gray-800'
-                                    }`}
-                                  >
-                                    {donation.status.charAt(0).toUpperCase() + donation.status.slice(1)}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-sm">{donation.ngo_name || "Not assigned"}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <p>No donation history available.</p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               )}
