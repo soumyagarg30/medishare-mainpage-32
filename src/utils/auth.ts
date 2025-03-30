@@ -1,4 +1,3 @@
-
 /**
  * Authentication utilities for MediShare
  */
@@ -117,6 +116,14 @@ export const loginUser = async (
       };
     }
     
+    // Check if the user is verified
+    if (data.verification !== 'Verified') {
+      return {
+        success: false,
+        message: "Your account has not been verified by an admin yet or has been rejected. Please contact support for assistance."
+      };
+    }
+    
     // Now get additional user details from the appropriate table
     let userProfile = null;
     let address = '';
@@ -174,7 +181,7 @@ export const loginUser = async (
       email: data.email,
       name: name || email.split('@')[0],
       userType: userType,
-      verified: true, // Since we're not using email verification
+      verified: data.verification === 'Verified',
       createdAt: data.created_at,
       organization: organization,
       address: address,

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -96,11 +95,21 @@ const SignIn = () => {
         }
       } else {
         setFormError(result.message || "An error occurred during login.");
-        toast({
-          title: "Login failed",
-          description: result.message || "An error occurred during login.",
-          variant: "destructive",
-        });
+        
+        // Check if the error is related to verification
+        if (result.message && result.message.includes("not been verified")) {
+          toast({
+            title: "Account not verified",
+            description: "Your account is pending verification by an admin. Please check back later or contact support.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: result.message || "An error occurred during login.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
