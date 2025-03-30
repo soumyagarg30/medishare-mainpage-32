@@ -1,263 +1,311 @@
 
-import React, { useState } from "react";
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getUser } from "@/utils/auth";
+
+const formSchema = z.object({
+  medicineName: z.string().min(2, {
+    message: "Medicine name must be at least 2 characters.",
+  }),
+  category: z.string({
+    required_error: "Please select a medicine category.",
+  }),
+  quantity: z.coerce.number().positive({
+    message: "Quantity must be a positive number.",
+  }),
+  expiryDate: z.date().optional(),
+  condition: z.string({
+    required_error: "Please select the medicine condition.",
+  }),
+  description: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+// These would typically come from an API or database
+const medicineCategories = [
+  "Antibiotics",
+  "Analgesics",
+  "Antidiabetics",
+  "Cardiovascular",
+  "Respiratory",
+  "Gastrointestinal",
+  "Neurological",
+  "Dermatological",
+  "Nutritional Supplements",
+  "Other",
+];
+
+const medicineConditions = [
+  "New/Sealed",
+  "Opened but Unused",
+  "Partially Used (>50% remaining)",
+  "Partially Used (<50% remaining)",
+];
 
 interface DonateFormProps {
-  donorEntityId: string;
   onSuccess: () => void;
 }
 
-interface DonateFormData {
-  medicineName: string;
-  quantity: number;
-  expiryDate: string;
-  ingredients: string;
-  imageFile?: File | null;
-}
+const DonateForm = ({ onSuccess }: DonateFormProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-const DonateForm = ({ donorEntityId, onSuccess }: DonateFormProps) => {
-  const [formData, setFormData] = useState<DonateFormData>({
-    medicineName: "",
-    quantity: 0,
-    expiryDate: "",
-    ingredients: "",
-    imageFile: null
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      medicineName: "",
+      category: "",
+      quantity: 1,
+      condition: "",
+      description: "",
+    },
   });
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: parseInt(value) || 0
-    });
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setFormData({
-        ...formData,
-        imageFile: file
-      });
-
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!donorEntityId) {
-      toast({
-        title: "Error",
-        description: "Donor information not found. Please sign in again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validation
-    if (!formData.medicineName || formData.quantity <= 0 || !formData.expiryDate) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill all required fields.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
-
+  const onSubmit = async (values: FormValues) => {
     try {
-      let imageUrl = null;
-
-      // Upload image if one was provided
-      if (formData.imageFile) {
-        const fileExt = formData.imageFile.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `ocr-images/${fileName}`;
-
-        const { error: uploadError, data: fileData } = await supabase.storage
-          .from('ocr-images')
-          .upload(filePath, formData.imageFile, {
-            cacheControl: '3600',
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        const { data } = supabase.storage
-          .from('ocr-images')
-          .getPublicUrl(filePath);
-
-        if (data) {
-          imageUrl = data.publicUrl;
-        }
-      }
-
-      // Record the donation in the database
-      const { error: insertError } = await supabase
-        .from('donated_meds')
-        .insert({
-          medicine_name: formData.medicineName,
-          quantity: formData.quantity,
-          expiry_date: formData.expiryDate,
-          ingredients: formData.ingredients,
-          image_url: imageUrl,
-          donor_entity_id: donorEntityId,
-          date_added: new Date().toISOString(),
-          status: 'uploaded'
+      setIsSubmitting(true);
+      // Get current user
+      const user = getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication error",
+          description: "You must be logged in to donate medicines",
+          variant: "destructive",
         });
-
-      if (insertError) {
-        throw insertError;
+        return;
       }
 
-      toast({
-        title: "Donation Successful",
-        description: "Your medicine donation has been recorded.",
-      });
+      // Create donation object
+      const donation = {
+        donor_id: user.id,
+        medicine_name: values.medicineName,
+        category: values.category,
+        quantity: values.quantity,
+        expiry_date: values.expiryDate ? format(values.expiryDate, 'yyyy-MM-dd') : null,
+        condition: values.condition,
+        description: values.description || "",
+        status: "pending",
+        created_at: new Date().toISOString(),
+      };
 
-      // Reset form and call onSuccess
-      onSuccess();
+      // In a real app, this would be a fetch to your backend API
+      console.log("Submitting donation:", donation);
+      
+      // Simulate API call success
+      // Replace with actual API call in production
+      setTimeout(() => {
+        toast({
+          title: "Donation submitted successfully",
+          description: "Thank you for your contribution!",
+        });
+        
+        form.reset();
+        onSuccess();
+        setIsSubmitting(false);
+      }, 1000);
+      
     } catch (error) {
-      console.error('Error processing donation:', error);
+      console.error("Error submitting donation:", error);
       toast({
-        title: "Error",
-        description: "Failed to process your donation. Please try again.",
-        variant: "destructive"
+        title: "Failed to submit medicine donation",
+        description: "Please try again later",
+        variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="medicineName">Medicine Name <span className="text-red-500">*</span></Label>
-        <Input
-          id="medicineName"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
           name="medicineName"
-          value={formData.medicineName}
-          onChange={handleInputChange}
-          placeholder="Enter the name of the medicine"
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="quantity">Quantity <span className="text-red-500">*</span></Label>
-        <Input
-          id="quantity"
-          name="quantity"
-          type="number"
-          min="1"
-          value={formData.quantity}
-          onChange={handleNumberInputChange}
-          placeholder="Enter the quantity"
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="expiryDate">Expiry Date <span className="text-red-500">*</span></Label>
-        <Input
-          id="expiryDate"
-          name="expiryDate"
-          type="date"
-          value={formData.expiryDate}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="ingredients">Ingredients</Label>
-        <Textarea
-          id="ingredients"
-          name="ingredients"
-          value={formData.ingredients}
-          onChange={handleInputChange}
-          placeholder="List the active ingredients"
-          rows={3}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="image">Medicine Image</Label>
-        <div className="border-2 border-dashed rounded-lg p-6 text-center">
-          <input
-            type="file"
-            id="image"
-            name="image"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="hidden"
-          />
-          {imagePreview ? (
-            <div className="mt-2">
-              <img 
-                src={imagePreview} 
-                alt="Medicine preview" 
-                className="mx-auto h-32 object-contain rounded-md" 
-              />
-              <button 
-                type="button"
-                onClick={() => {
-                  setFormData({...formData, imageFile: null});
-                  setImagePreview(null);
-                }}
-                className="mt-2 text-sm text-red-600 hover:text-red-800"
-              >
-                Remove image
-              </button>
-            </div>
-          ) : (
-            <label 
-              htmlFor="image" 
-              className="cursor-pointer flex flex-col items-center"
-            >
-              <Upload className="h-10 w-10 text-gray-400 mb-2" />
-              <span className="text-sm font-medium">Click to upload an image</span>
-              <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</span>
-            </label>
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Medicine Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter medicine name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
+        />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {medicineCategories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantity</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Enter quantity"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-      </div>
-
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={loading}
-      >
-        {loading ? "Processing..." : "Donate Medicine"}
-      </Button>
-    </form>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="expiryDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Expiry Date (Optional)</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="condition"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Condition</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select condition" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {medicineConditions.map((condition) => (
+                      <SelectItem key={condition} value={condition}>
+                        {condition}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Additional Information (Optional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter any additional details about the medicine"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" className="w-full bg-medishare-orange hover:bg-medishare-gold" disabled={isSubmitting}>
+          {isSubmitting ? "Submitting..." : "Donate Medicine"}
+        </Button>
+      </form>
+    </Form>
   );
 };
 
