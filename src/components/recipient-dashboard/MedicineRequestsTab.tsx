@@ -91,10 +91,30 @@ const MedicineRequestsTab = () => {
     try {
       // Check if the medicine request is rejected
       const request = requests.find((req) => req.id === requestId);
-      if (request?.status === "rejected") {
+      if (!request) {
+        toast({
+          title: "Error",
+          description: "Medicine request not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Don't allow status changes for rejected requests
+      if (request.status === "rejected") {
         toast({
           title: "Cannot update status",
           description: "Rejected medicine requests cannot be updated.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Don't allow approved requests to be changed back to uploaded
+      if (request.status === "approved" && newStatus === "uploaded") {
+        toast({
+          title: "Cannot update status",
+          description: "Approved medicine requests cannot be changed back to uploaded.",
           variant: "destructive",
         });
         return;
@@ -148,7 +168,7 @@ const MedicineRequestsTab = () => {
       ];
     }
 
-    // For other statuses (like uploaded), allow all options
+    // For other statuses (like uploaded), allow appropriate options
     return [
       { value: "uploaded", label: "Uploaded" },
       { value: "received", label: "Received" }
