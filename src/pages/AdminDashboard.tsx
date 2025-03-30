@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Filter, Search, UserPlus, Check, X } from "lucide-react";
+import { Filter, Search, UserPlus, Check, X, Clock } from "lucide-react";
 import MedicineDonationsTab from "@/components/admin-dashboard/MedicineDonationsTab";
 import MedicineRequestsTab from "@/components/admin-dashboard/MedicineRequestsTab";
 
@@ -43,6 +43,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [processingUser, setProcessingUser] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,48 +60,6 @@ const AdminDashboard = () => {
     }
 
     // Fetch users
-    const fetchUsers = async () => {
-      try {
-        // Get all users from the users table
-        const { data: usersData, error } = await supabase
-          .from('users')
-          .select('*');
-
-        if (error) {
-          console.error("Error fetching users:", error);
-          toast({
-            title: "Error",
-            description: "Could not fetch users. Please try again later.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Process and set user data
-        const processedUsers = usersData.map((user) => ({
-          id: user.id,
-          name: user.entity_type === 'Donor' ? 'Donor' : 
-               user.entity_type === 'Recipient' ? 'Recipient' : 
-               user.entity_type === 'Intermediary NGO' ? 'NGO' : 'Admin',
-          email: user.email,
-          userType: user.entity_type,
-          createdAt: user.created_at,
-          verified: true, // Assuming all users in the database are verified
-          verificationId: user.verification_id
-        }));
-
-        setUsers(processedUsers);
-        setFilteredUsers(processedUsers);
-      } catch (err) {
-        console.error("Error:", err);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred.",
-          variant: "destructive",
-        });
-      }
-    };
-
     fetchUsers();
   }, [navigate]);
 
@@ -118,6 +77,48 @@ const AdminDashboard = () => {
     }
   }, [searchTerm, users]);
 
+  const fetchUsers = async () => {
+    try {
+      // Get all users from the users table
+      const { data: usersData, error } = await supabase
+        .from('users')
+        .select('*');
+
+      if (error) {
+        console.error("Error fetching users:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch users. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Process and set user data
+      const processedUsers = usersData.map((user) => ({
+        id: user.id,
+        name: user.entity_type === 'Donor' ? 'Donor' : 
+             user.entity_type === 'Recipient' ? 'Recipient' : 
+             user.entity_type === 'Intermediary NGO' ? 'NGO' : 'Admin',
+        email: user.email,
+        userType: user.entity_type,
+        createdAt: user.created_at,
+        verification: user.verification || 'Waiting approval',
+        verificationId: user.verification_id
+      }));
+
+      setUsers(processedUsers);
+      setFilteredUsers(processedUsers);
+    } catch (err) {
+      console.error("Error:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -131,17 +132,17 @@ const AdminDashboard = () => {
     setActiveTab(tab);
   };
 
-  const handleVerifyUser = async () => {
+  const handleVerifyUser = async (status: string) => {
     if (!selectedUser) return;
     
+    setProcessingUser(selectedUser.id);
+    
     try {
-      // Update the user's verified status in the database
-      const { data, error } = await supabase
+      // Update the user's verification status in the database
+      const { error } = await supabase
         .from('users')
         .update({ 
-          // Assuming we want to mark the user as verified
-          // We don't have a 'verified' column in the users table based on the schema
-          // This is just a placeholder - we'd need to add this column or use another approach
+          verification: status
         })
         .eq('id', selectedUser.id);
 
@@ -149,24 +150,51 @@ const AdminDashboard = () => {
 
       // Update local state
       const updatedUsers = users.map((user) =>
-        user.id === selectedUser.id ? { ...user, verified: true } : user
+        user.id === selectedUser.id ? { ...user, verification: status } : user
       );
       setUsers(updatedUsers);
       setFilteredUsers(updatedUsers);
       
       toast({
         title: "Success",
-        description: "User has been verified.",
+        description: `User has been ${status.toLowerCase()}.`,
       });
       
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error verifying user:", error);
+      console.error("Error updating user status:", error);
       toast({
         title: "Error",
-        description: "Failed to verify user. Please try again.",
+        description: "Failed to update user status. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setProcessingUser(null);
+    }
+  };
+
+  const getVerificationStatusBadge = (status: string) => {
+    if (status === 'Verified') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+          <Check className="h-3 w-3" />
+          Verified
+        </span>
+      );
+    } else if (status === 'Rejected') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+          <X className="h-3 w-3" />
+          Rejected
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold">
+          <Clock className="h-3 w-3" />
+          Waiting Approval
+        </span>
+      );
     }
   };
 
@@ -283,17 +311,7 @@ const AdminDashboard = () => {
                             : "N/A"}
                         </TableCell>
                         <TableCell>
-                          {user.verified ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-                              <Check className="h-3 w-3" />
-                              Verified
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold">
-                              <X className="h-3 w-3" />
-                              Pending
-                            </span>
-                          )}
+                          {getVerificationStatusBadge(user.verification)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -351,9 +369,7 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Status</p>
-                  <p>
-                    {selectedUser.verified ? "Verified" : "Pending Verification"}
-                  </p>
+                  <p>{selectedUser.verification || "Waiting approval"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">
@@ -373,14 +389,52 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {!selectedUser.verified && (
-                <Button
-                  onClick={handleVerifyUser}
-                  className="w-full bg-medishare-orange hover:bg-medishare-gold"
-                >
-                  Verify User
-                </Button>
-              )}
+              <div className="flex gap-3 mt-4">
+                {selectedUser.verification !== 'Verified' && (
+                  <Button
+                    onClick={() => handleVerifyUser('Verified')}
+                    disabled={processingUser === selectedUser.id}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    {processingUser === selectedUser.id ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1"/>
+                    ) : (
+                      <Check className="h-4 w-4 mr-1" />
+                    )}
+                    Verify User
+                  </Button>
+                )}
+                
+                {selectedUser.verification !== 'Rejected' && (
+                  <Button
+                    onClick={() => handleVerifyUser('Rejected')}
+                    disabled={processingUser === selectedUser.id}
+                    className="w-full bg-red-600 hover:bg-red-700"
+                  >
+                    {processingUser === selectedUser.id ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1"/>
+                    ) : (
+                      <X className="h-4 w-4 mr-1" />
+                    )}
+                    Reject User
+                  </Button>
+                )}
+                
+                {selectedUser.verification !== 'Waiting approval' && (
+                  <Button
+                    onClick={() => handleVerifyUser('Waiting approval')}
+                    disabled={processingUser === selectedUser.id}
+                    className="w-full"
+                  >
+                    {processingUser === selectedUser.id ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1"/>
+                    ) : (
+                      <Clock className="h-4 w-4 mr-1" />
+                    )}
+                    Reset Status
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
