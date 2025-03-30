@@ -1,154 +1,214 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { getUser } from "@/utils/auth";
 
-// Example data - in a real app, this would come from an API
-const medicineRequests = [
-  {
-    id: 1,
-    medicineName: "Paracetamol",
-    quantity: "100 tablets",
-    requestDate: "2023-05-15",
-    status: "approved",
-    ngo: "HealthCare Foundation",
-  },
-  {
-    id: 2,
-    medicineName: "Amoxicillin",
-    quantity: "50 capsules",
-    requestDate: "2023-05-10",
-    status: "pending",
-    ngo: "Medical Relief NGO",
-  },
-  {
-    id: 3,
-    medicineName: "Insulin",
-    quantity: "10 vials",
-    requestDate: "2023-05-05",
-    status: "rejected",
-    reason: "Insufficient documentation provided",
-    ngo: "Diabetes Care Network",
-  },
-  {
-    id: 4,
-    medicineName: "Vitamin B Complex",
-    quantity: "60 tablets",
-    requestDate: "2023-05-01",
-    status: "approved",
-    ngo: "Nutrition First",
-  },
-];
+interface MedicineRequest {
+  id: string;
+  medicine_name: string;
+  quantity: number;
+  medical_condition: string;
+  status: string;
+  requested_date: string;
+  recipient_entity_id: string;
+  ngo_entity_id?: string;
+}
 
 const MedicineRequestsTab = () => {
-  const [requests, setRequests] = useState(medicineRequests);
+  const [requests, setRequests] = useState<MedicineRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = getUser();
 
-  const handleStatusChange = (id: number, newStatus: string) => {
-    // Find the request
-    const requestToUpdate = requests.find(req => req.id === id);
-    
-    // Don't allow status change if request was rejected
-    if (requestToUpdate?.status === "rejected") {
+  useEffect(() => {
+    // Fetch medicine requests
+    const fetchRequests = async () => {
+      try {
+        // In a real app, this would be an API call to fetch from the database
+        // For this demo, we'll use mock data
+        const mockRequests: MedicineRequest[] = [
+          {
+            id: "req-1",
+            medicine_name: "Amoxicillin",
+            quantity: 30,
+            medical_condition: "Bacterial infection",
+            status: "pending",
+            requested_date: "2023-06-15",
+            recipient_entity_id: user?.entity_id || "",
+          },
+          {
+            id: "req-2",
+            medicine_name: "Paracetamol",
+            quantity: 20,
+            medical_condition: "Fever",
+            status: "approved",
+            requested_date: "2023-06-10",
+            recipient_entity_id: user?.entity_id || "",
+            ngo_entity_id: "ngo-123",
+          },
+          {
+            id: "req-3",
+            medicine_name: "Ibuprofen",
+            quantity: 15,
+            medical_condition: "Pain relief",
+            status: "rejected",
+            requested_date: "2023-06-05",
+            recipient_entity_id: user?.entity_id || "",
+          },
+          {
+            id: "req-4",
+            medicine_name: "Omeprazole",
+            quantity: 30,
+            medical_condition: "Acid reflux",
+            status: "delivered",
+            requested_date: "2023-05-20",
+            recipient_entity_id: user?.entity_id || "",
+            ngo_entity_id: "ngo-456",
+          },
+        ];
+
+        setRequests(mockRequests);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching medicine requests:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load medicine requests",
+          variant: "destructive",
+        });
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [user?.entity_id]);
+
+  const handleStatusChange = (requestId: string, newStatus: string) => {
+    // Check if the medicine request is rejected
+    const request = requests.find((req) => req.id === requestId);
+    if (request?.status === "rejected") {
       toast({
-        title: "Action not allowed",
-        description: "Rejected requests cannot have their status changed.",
+        title: "Cannot update status",
+        description: "Rejected medicine requests cannot be updated.",
         variant: "destructive",
       });
       return;
     }
-    
-    // Update request status
-    setRequests(
-      requests.map((req) =>
-        req.id === id ? { ...req, status: newStatus } : req
+
+    // In a real app, this would be an API call to update the status in the database
+    setRequests((prevRequests) =>
+      prevRequests.map((req) =>
+        req.id === requestId ? { ...req, status: newStatus } : req
       )
     );
 
     toast({
       title: "Status updated",
-      description: `Medicine request status changed to ${newStatus}.`,
+      description: `Medicine request status updated to ${newStatus}`,
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <Badge className="bg-green-500">Approved</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-500">Pending</Badge>;
-      case "rejected":
-        return <Badge className="bg-red-500">Rejected</Badge>;
-      case "uploaded":
-        return <Badge className="bg-blue-500">Uploaded</Badge>;
-      case "received":
-        return <Badge className="bg-purple-500">Received</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+  // Function to get the appropriate status options based on current status
+  const getStatusOptions = (currentStatus: string) => {
+    // If the status is rejected, don't allow changes
+    if (currentStatus === "rejected") {
+      return [{ value: "rejected", label: "Rejected" }];
     }
+
+    // For recipient, we allow them to update only to "received" or "uploaded"
+    return [
+      { value: currentStatus, label: currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1) },
+      { value: "uploaded", label: "Uploaded" },
+      { value: "received", label: "Received" }
+    ];
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Medicine Requests</CardTitle>
+        <CardTitle>My Medicine Requests</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {requests.map((request) => (
-            <div
-              key={request.id}
-              className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md"
-            >
-              <div>
-                <h3 className="font-medium">{request.medicineName}</h3>
-                <p className="text-sm text-gray-500">Quantity: {request.quantity}</p>
-                <p className="text-sm text-gray-500">NGO: {request.ngo}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">
-                  Requested on: {request.requestDate}
-                </p>
-                <div className="mt-2">{getStatusBadge(request.status)}</div>
-                {request.reason && (
-                  <p className="text-sm text-red-500 mt-1">{request.reason}</p>
-                )}
-              </div>
-              <div className="flex flex-col space-y-2 justify-end">
-                {/* Only show status change options if not rejected */}
-                {request.status !== "rejected" && (
-                  <Select
-                    onValueChange={(value) => handleStatusChange(request.id, value)}
-                    defaultValue={request.status}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Update Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="uploaded">Uploaded</SelectItem>
-                      <SelectItem value="received">Received</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  View Details
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medishare-blue"></div>
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="text-center py-8">
+            <p>No medicine requests found</p>
+            <Button className="mt-4" variant="outline">
+              Request New Medicine
+            </Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-4 py-2 text-left">Medicine Name</th>
+                  <th className="px-4 py-2 text-left">Quantity</th>
+                  <th className="px-4 py-2 text-left">Medical Condition</th>
+                  <th className="px-4 py-2 text-left">Request Date</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((request) => (
+                  <tr key={request.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3">{request.medicine_name}</td>
+                    <td className="px-4 py-3">{request.quantity}</td>
+                    <td className="px-4 py-3">{request.medical_condition}</td>
+                    <td className="px-4 py-3">
+                      {new Date(request.requested_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          request.status === "pending"
+                            ? "bg-amber-100 text-amber-800"
+                            : request.status === "approved"
+                            ? "bg-blue-100 text-blue-800"
+                            : request.status === "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : request.status === "delivered"
+                            ? "bg-purple-100 text-purple-800"
+                            : request.status === "received"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center space-x-2">
+                        <Select
+                          disabled={request.status === "rejected"}
+                          onValueChange={(value) => handleStatusChange(request.id, value)}
+                          defaultValue={request.status}
+                        >
+                          <SelectTrigger className="w-32 h-8 text-xs">
+                            <SelectValue placeholder="Update Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getStatusOptions(request.status).map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -27,10 +28,10 @@ const Hero = () => {
             
             <div className="animate-fade-in-up [animation-delay:0.6s] opacity-0">
               <Link
-                to="/register"
+                to="/sign-in"
                 className="inline-flex items-center px-6 py-3 bg-medishare-orange text-white font-medium rounded-md hover:bg-medishare-gold transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1"
               >
-                REGISTER
+                Sign In
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </div>

@@ -2,341 +2,192 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getUser } from "@/utils/auth";
 
 interface MedicineRequest {
   id: string;
-  medicine_name: string | null;
-  quantity: number | null;
-  need_by_date: string | null;
-  status: string | null;
+  medicine_name: string;
+  quantity: number;
+  medical_condition: string;
+  status: string;
+  requested_date: string;
   recipient_entity_id: string;
-  ngo_entity_id: string | null;
-  reason?: string | null;
-  requester?: string; // This will be populated from the recipients table
+  recipient_name?: string;
+  ngo_entity_id?: string;
 }
 
-// We're not actually using ngoEntityId in this component currently,
-// so we can make it optional to avoid breaking existing usage
-interface MedicineRequestsTabProps {
-  ngoEntityId?: string;
-}
-
-const MedicineRequestsTab: React.FC<MedicineRequestsTabProps> = ({ ngoEntityId }) => {
+const MedicineRequestsTab = () => {
   const [requests, setRequests] = useState<MedicineRequest[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<MedicineRequest | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const user = getUser();
 
   useEffect(() => {
-    fetchMedicineRequests();
-  }, [ngoEntityId]);
-
-  const fetchMedicineRequests = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch medicine requests from the requested_meds table
-      const { data, error } = await supabase
-        .from('requested_meds')
-        .select('*')
-        .eq('status', 'uploaded'); // Get requests that are in uploaded status
-      
-      if (error) {
-        throw error;
-      }
-      
-      const requestsWithRecipients: MedicineRequest[] = [];
-      
-      // For each request, fetch the recipient information
-      for (const request of data || []) {
-        const { data: recipientData, error: recipientError } = await supabase
-          .from('recipients')
-          .select('name, org_name')
-          .eq('entity_id', request.recipient_entity_id)
-          .single();
-        
-        const requesterName = recipientData ? 
-          (recipientData.org_name || recipientData.name) : 
-          'Unknown Requester';
-        
-        requestsWithRecipients.push({
-          ...request,
-          requester: requesterName
-        });
-      }
-      
-      setRequests(requestsWithRecipients);
-    } catch (error) {
-      console.error('Error fetching medicine requests:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load medicine requests",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (selectedRequest) {
+    const fetchRequests = async () => {
       try {
-        const { error } = await supabase
-          .from('requested_meds')
-          .update({
-            status: 'rejected',
-            reason: rejectReason
-          })
-          .eq('id', selectedRequest.id);
-        
-        if (error) throw error;
-        
-        // Update the local state
-        setRequests(
-          requests.map((req) =>
-            req.id === selectedRequest.id
-              ? { ...req, status: "rejected", reason: rejectReason }
-              : req
-          )
-        );
+        // In a real app, this would be an API call to fetch from the database
+        // For this demo, we'll use mock data
+        const mockRequests: MedicineRequest[] = [
+          {
+            id: "req-1",
+            medicine_name: "Amoxicillin",
+            quantity: 30,
+            medical_condition: "Bacterial infection",
+            status: "pending",
+            requested_date: "2023-06-15",
+            recipient_entity_id: "recipient-1",
+            recipient_name: "John Doe"
+          },
+          {
+            id: "req-2",
+            medicine_name: "Paracetamol",
+            quantity: 20,
+            medical_condition: "Fever",
+            status: "approved",
+            requested_date: "2023-06-10",
+            recipient_entity_id: "recipient-2",
+            recipient_name: "Jane Smith",
+            ngo_entity_id: user?.entity_id
+          },
+          {
+            id: "req-3",
+            medicine_name: "Ibuprofen",
+            quantity: 15,
+            medical_condition: "Pain relief",
+            status: "rejected",
+            requested_date: "2023-06-05",
+            recipient_entity_id: "recipient-3",
+            recipient_name: "Mark Johnson"
+          },
+          {
+            id: "req-4",
+            medicine_name: "Omeprazole",
+            quantity: 30,
+            medical_condition: "Acid reflux",
+            status: "approved",
+            requested_date: "2023-05-20",
+            recipient_entity_id: "recipient-4",
+            recipient_name: "Sarah Williams",
+            ngo_entity_id: "ngo-456"
+          },
+        ];
 
-        toast({
-          title: "Request rejected",
-          description: `Medicine request from ${selectedRequest.requester} has been rejected.`,
-        });
-
-        setRejectReason("");
-        setRejectDialogOpen(false);
+        setRequests(mockRequests);
+        setLoading(false);
       } catch (error) {
-        console.error('Error rejecting request:', error);
+        console.error("Error fetching medicine requests:", error);
         toast({
           title: "Error",
-          description: "Failed to reject the request",
-          variant: "destructive"
+          description: "Failed to load medicine requests",
+          variant: "destructive",
         });
+        setLoading(false);
       }
-    }
-  };
+    };
 
-  const handleAccept = async () => {
-    if (selectedRequest && ngoEntityId) {
-      try {
-        const { error } = await supabase
-          .from('requested_meds')
-          .update({
-            status: 'approved',
-            ngo_entity_id: ngoEntityId
-          })
-          .eq('id', selectedRequest.id);
-        
-        if (error) throw error;
-        
-        // Update the local state
-        setRequests(
-          requests.map((req) =>
-            req.id === selectedRequest.id
-              ? { ...req, status: "approved", ngo_entity_id: ngoEntityId }
-              : req
-          )
-        );
+    fetchRequests();
+  }, [user?.entity_id]);
 
-        toast({
-          title: "Request accepted",
-          description: `Medicine request from ${selectedRequest.requester} has been approved.`,
-        });
+  const handleAcceptRequest = (requestId: string) => {
+    // In a real app, this would be an API call to update the status in the database
+    setRequests((prevRequests) =>
+      prevRequests.map((req) =>
+        req.id === requestId ? { 
+          ...req, 
+          status: "approved", 
+          ngo_entity_id: user?.entity_id 
+        } : req
+      )
+    );
 
-        setAcceptDialogOpen(false);
-      } catch (error) {
-        console.error('Error accepting request:', error);
-        toast({
-          title: "Error",
-          description: "Failed to accept the request",
-          variant: "destructive"
-        });
-      }
-    } else if (!ngoEntityId) {
-      toast({
-        title: "Error",
-        description: "NGO information is missing. Please update your profile.",
-        variant: "destructive"
-      });
-      setAcceptDialogOpen(false);
-    }
-  };
-
-  const getPriorityBadge = (needByDate: string | null) => {
-    if (!needByDate) return <Badge className="bg-green-500">Low</Badge>;
-    
-    const today = new Date();
-    const needBy = new Date(needByDate);
-    const daysUntilNeedBy = Math.ceil((needBy.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilNeedBy <= 7) {
-      return <Badge className="bg-red-500">Critical</Badge>;
-    } else if (daysUntilNeedBy <= 14) {
-      return <Badge className="bg-orange-500">High</Badge>;
-    } else if (daysUntilNeedBy <= 30) {
-      return <Badge className="bg-yellow-500">Medium</Badge>;
-    } else {
-      return <Badge className="bg-green-500">Low</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "approved":
-        return <Badge className="bg-green-500">Approved</Badge>;
-      case "pending":
-      case "uploaded":
-        return <Badge className="bg-yellow-500">Pending</Badge>;
-      case "rejected":
-        return <Badge className="bg-red-500">Rejected</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
+    toast({
+      title: "Request Approved",
+      description: "You have successfully approved this medicine request.",
+    });
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Medicine Requests</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center p-6">Loading medicine requests...</div>
-          ) : requests.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No medicine requests available at this time.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {requests.map((request) => (
-                <div
-                  key={request.id}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md"
-                >
-                  <div>
-                    <h3 className="font-medium">{request.medicine_name}</h3>
-                    <p className="text-sm text-gray-500">Requester: {request.requester}</p>
-                    <p className="text-sm text-gray-500">Quantity: {request.quantity}</p>
-                    <div className="mt-2">{getPriorityBadge(request.need_by_date)}</div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Needed by: {request.need_by_date ? new Date(request.need_by_date).toLocaleDateString() : 'Not specified'}
-                    </p>
-                    <div className="mt-2">{getStatusBadge(request.status)}</div>
-                    {request.reason && (
-                      <p className="text-sm text-red-500 mt-1">Reason: {request.reason}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col space-y-2 justify-end">
-                    {(request.status === "pending" || request.status === "uploaded") && (
-                      <>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600"
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setAcceptDialogOpen(true);
-                          }}
+    <Card>
+      <CardHeader>
+        <CardTitle>Medicine Requests</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medishare-blue"></div>
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="text-center py-8">
+            <p>No medicine requests found</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-4 py-2 text-left">Medicine Name</th>
+                  <th className="px-4 py-2 text-left">Quantity</th>
+                  <th className="px-4 py-2 text-left">Medical Condition</th>
+                  <th className="px-4 py-2 text-left">Recipient</th>
+                  <th className="px-4 py-2 text-left">Request Date</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((request) => (
+                  <tr key={request.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3">{request.medicine_name}</td>
+                    <td className="px-4 py-3">{request.quantity}</td>
+                    <td className="px-4 py-3">{request.medical_condition}</td>
+                    <td className="px-4 py-3">{request.recipient_name}</td>
+                    <td className="px-4 py-3">
+                      {new Date(request.requested_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          request.status === "pending"
+                            ? "bg-amber-100 text-amber-800"
+                            : request.status === "approved"
+                            ? "bg-blue-100 text-blue-800"
+                            : request.status === "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : request.status === "delivered"
+                            ? "bg-purple-100 text-purple-800"
+                            : request.status === "received"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {request.status === "pending" ? (
+                        <Button 
+                          size="sm" 
+                          className="bg-medishare-blue hover:bg-medishare-blue/90"
+                          onClick={() => handleAcceptRequest(request.id)}
                         >
                           Accept
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setRejectDialogOpen(true);
-                          }}
-                        >
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                    >
-                      View Details
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Reject Dialog */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Medicine Request</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="mb-4">
-              You are about to reject the medicine request for{" "}
-              <span className="font-medium">{selectedRequest?.medicine_name}</span> from{" "}
-              <span className="font-medium">{selectedRequest?.requester}</span>.
-            </p>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Reason for rejection:</label>
-              <Textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Please provide a reason for rejecting this request..."
-              />
-            </div>
+                      ) : request.ngo_entity_id === user?.entity_id ? (
+                        <span className="text-sm text-green-600">Accepted by you</span>
+                      ) : request.status === "approved" ? (
+                        <span className="text-sm text-gray-500">Accepted by another NGO</span>
+                      ) : (
+                        <span className="text-sm text-gray-500">{request.status}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleReject}>
-              Reject Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Accept Dialog */}
-      <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Accept Medicine Request</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>
-              You are about to accept the medicine request for{" "}
-              <span className="font-medium">{selectedRequest?.medicine_name}</span> from{" "}
-              <span className="font-medium">{selectedRequest?.requester}</span>.
-            </p>
-            <p className="mt-4">
-              This will allow the requester to receive {selectedRequest?.quantity} of {selectedRequest?.medicine_name}.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAcceptDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-green-500 hover:bg-green-600" onClick={handleAccept}>
-              Accept Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
