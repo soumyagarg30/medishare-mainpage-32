@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -44,6 +43,7 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [processingUser, setProcessingUser] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -170,16 +170,25 @@ const AdminDashboard = () => {
     if (!selectedUser) return;
     
     setProcessingUser(selectedUser.id);
+    setStatusError(null);
     
     try {
-      // Ensure status matches exactly what the database constraint allows
-      let verificationStatus;
-      if (status === 'Verified') {
-        verificationStatus = 'Verified';
-      } else if (status === 'Rejected') {
-        verificationStatus = 'Rejected';
-      } else {
-        verificationStatus = 'Waiting approval';
+      // Map the button status to the exact database values
+      let verificationStatus: string;
+      
+      switch(status) {
+        case 'Verified':
+          verificationStatus = 'Verified';
+          break;
+        case 'Rejected':
+          verificationStatus = 'Rejected';
+          break;
+        case 'Reset Status':
+        case 'Waiting approval':
+          verificationStatus = 'Waiting approval';
+          break;
+        default:
+          verificationStatus = 'Waiting approval';
       }
       
       console.log(`Updating user ${selectedUser.id} with status: ${verificationStatus}`);
@@ -194,6 +203,12 @@ const AdminDashboard = () => {
 
       if (error) {
         console.error("Error updating user status:", error);
+        setStatusError(`Failed to update status: ${error.message}`);
+        toast({
+          title: "Error",
+          description: `Failed to update status: ${error.message}`,
+          variant: "destructive",
+        });
         throw error;
       }
 
@@ -206,17 +221,13 @@ const AdminDashboard = () => {
       
       toast({
         title: "Success",
-        description: `User has been ${verificationStatus.toLowerCase()}.`,
+        description: `User status has been ${verificationStatus === 'Waiting approval' ? 'reset to waiting approval' : verificationStatus.toLowerCase()}.`,
       });
       
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error updating user status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update user status. Please try again.",
-        variant: "destructive",
-      });
+      // Error is already handled above
     } finally {
       setProcessingUser(null);
     }
@@ -438,6 +449,12 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
+              {statusError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                  {statusError}
+                </div>
+              )}
+
               <div className="flex gap-3 mt-4">
                 {selectedUser.verification !== 'Verified' && (
                   <Button
@@ -471,7 +488,7 @@ const AdminDashboard = () => {
                 
                 {selectedUser.verification !== 'Waiting approval' && (
                   <Button
-                    onClick={() => handleVerifyUser('Waiting approval')}
+                    onClick={() => handleVerifyUser('Reset Status')}
                     disabled={processingUser === selectedUser.id}
                     className="w-full"
                   >
