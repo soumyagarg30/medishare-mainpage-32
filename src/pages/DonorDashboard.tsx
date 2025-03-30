@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -6,13 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUser, UserData, isAuthenticated } from "@/utils/auth";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ChevronDown, ChevronUp, UserCircle, Search, Bell, FileText, Package, MapPin } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, UserCircle, Bell, FileText, Package, MapPin } from "lucide-react";
 import WelcomeMessage from "@/components/WelcomeMessage";
 import DonateTab from "@/components/donor-dashboard/DonateTab";
 
@@ -322,6 +319,8 @@ const DonorDashboard = () => {
                     <CardDescription>View and manage your medicine donations</CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {user && <DonateTab user={user} />}
+                    
                     {donatedMedicines.length > 0 ? (
                       <div className="space-y-4">
                         {donatedMedicines.map((donation) => (
@@ -382,7 +381,6 @@ const DonorDashboard = () => {
                     ) : (
                       <div className="text-center py-8 text-gray-500">
                         <p>You haven't donated any medicines yet.</p>
-                        {user && <DonateTab user={user} />}
                       </div>
                     )}
                   </CardContent>
