@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -29,9 +28,9 @@ import DonationChart from "@/components/charts/DonationChart";
 import DonorsNearMeTab from "@/components/ngo-dashboard/DonorsNearMeTab";
 import MedicineRequestsTab from "@/components/ngo-dashboard/MedicineRequestsTab";
 import AvailableMedicinesTab from "@/components/ngo-dashboard/AvailableMedicinesTab";
+import DistributionTab from "@/components/ngo-dashboard/DistributionTab";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DonatedMedicine {
   id: string;
@@ -497,64 +496,7 @@ const NGODashboard = () => {
               
               {activeTab === "available" && <AvailableMedicinesTab ngoEntityId={ngoEntityId || ""} />}
               
-              {activeTab === "distribution" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Distribution Management</CardTitle>
-                    <CardDescription>Track medicine distribution to recipients</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <Button className="bg-medishare-orange hover:bg-medishare-gold">
-                        + Create New Distribution
-                      </Button>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ID</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Medicine</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Quantity</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Recipient</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {distributionHistory.map((distribution) => (
-                              <tr key={distribution.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-4 text-sm">{distribution.id}</td>
-                                <td className="px-4 py-4 text-sm">{distribution.medicine}</td>
-                                <td className="px-4 py-4 text-sm">{distribution.quantity}</td>
-                                <td className="px-4 py-4 text-sm">{distribution.recipient}</td>
-                                <td className="px-4 py-4 text-sm">{distribution.date}</td>
-                                <td className="px-4 py-4 text-sm">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    distribution.status === "Delivered" 
-                                      ? "bg-green-100 text-green-800" 
-                                      : distribution.status === "In Transit" 
-                                      ? "bg-blue-100 text-blue-800" 
-                                      : "bg-yellow-100 text-yellow-800"
-                                  }`}>
-                                    {distribution.status}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-sm">
-                                  <Button variant="ghost" size="sm" className="text-medishare-blue">
-                                    Update
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {activeTab === "distribution" && <DistributionTab ngoEntityId={ngoEntityId || ""} />}
               
               {activeTab === "requests" && <MedicineRequestsTab ngoEntityId={ngoEntityId || ""} />}
               
