@@ -34,6 +34,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { getUser } from "@/utils/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   medicineName: z.string().min(2, {
@@ -82,6 +83,8 @@ interface DonateFormProps {
 
 const DonateForm = ({ donorEntityId, onSuccess }: DonateFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -94,9 +97,46 @@ const DonateForm = ({ donorEntityId, onSuccess }: DonateFormProps) => {
     },
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Check file type
+      if (!file.type.match('image/jpeg|image/jpg|image/png')) {
+        toast({
+          title: "Invalid File",
+          description: "Please upload a JPG, JPEG, or PNG image",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setImageFile(file);
+      
+      // Create image preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Check if image is uploaded
+      if (!imageFile) {
+        toast({
+          title: "Missing Image",
+          description: "Please upload an image of the medicine",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Get current user
       const user = getUser();
       
@@ -106,37 +146,80 @@ const DonateForm = ({ donorEntityId, onSuccess }: DonateFormProps) => {
           description: "You must be logged in to donate medicines",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
+      // Generate a unique file path for storage
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${donorEntityId}/${Date.now()}.${fileExt}`;
+      
+      // Upload image to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('ocr-images')
+        .upload(fileName, imageFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload medicine image",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Get the public URL for the uploaded image
+      const { data: publicUrlData } = supabase.storage
+        .from('ocr-images')
+        .getPublicUrl(fileName);
+      
+      const imageUrl = publicUrlData.publicUrl;
+      
       // Create donation object
       const donation = {
-        donor_id: user.id,
+        donor_entity_id: donorEntityId,
         medicine_name: values.medicineName,
         category: values.category,
         quantity: values.quantity,
         expiry_date: values.expiryDate ? format(values.expiryDate, 'yyyy-MM-dd') : null,
         condition: values.condition,
         description: values.description || "",
-        status: "pending",
-        created_at: new Date().toISOString(),
+        status: "uploaded",
+        date_added: new Date().toISOString().split('T')[0],
+        image_url: imageUrl,
+        ingredients: "",
       };
 
-      // In a real app, this would be a fetch to your backend API
-      console.log("Submitting donation:", donation);
+      // Insert donation into the database
+      const { error: donationError } = await supabase
+        .from('donated_meds')
+        .insert(donation);
       
-      // Simulate API call success
-      // Replace with actual API call in production
-      setTimeout(() => {
+      if (donationError) {
+        console.error('Error submitting donation:', donationError);
         toast({
-          title: "Donation submitted successfully",
-          description: "Thank you for your contribution!",
+          title: "Submission failed",
+          description: "Failed to submit medicine donation",
+          variant: "destructive",
         });
-        
-        form.reset();
-        onSuccess();
         setIsSubmitting(false);
-      }, 1000);
+        return;
+      }
+      
+      toast({
+        title: "Donation submitted successfully",
+        description: "Thank you for your contribution!",
+      });
+      
+      form.reset();
+      setImageFile(null);
+      setImagePreview(null);
+      onSuccess();
       
     } catch (error) {
       console.error("Error submitting donation:", error);
@@ -145,6 +228,7 @@ const DonateForm = ({ donorEntityId, onSuccess }: DonateFormProps) => {
         description: "Please try again later",
         variant: "destructive",
       });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -282,6 +366,25 @@ const DonateForm = ({ donorEntityId, onSuccess }: DonateFormProps) => {
               </FormItem>
             )}
           />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Medicine Image</label>
+          <Input 
+            type="file"
+            accept="image/jpeg, image/jpg, image/png"
+            onChange={handleFileChange}
+            className="cursor-pointer"
+          />
+          {imagePreview && (
+            <div className="mt-2">
+              <img 
+                src={imagePreview} 
+                alt="Medicine Preview" 
+                className="rounded-md max-h-40 object-contain" 
+              />
+            </div>
+          )}
         </div>
         
         <FormField
